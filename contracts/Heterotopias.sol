@@ -41,10 +41,28 @@ contract Heterotopia is ERC721URIStorage {
         uint256 issue_id;
         // Indicate which series this NFT belongs to.
     }
-    mapping (uint256 => Issue) issue_series;
+    mapping (uint256 => Issue) issues;
     mapping (uint256 => Edition) editions;
-    
 
+    event determinePriceSuccess(
+        uint256 token_id,
+        address token_address,
+        uint256 transfer_price
+    );
 
+    event publishSuccess(
+    uint256 issue_id,
+    address publisher,
+    uint256 total_edition_amount,
+    uint256 _special_edition_amount, 
+    address _special_payment_addr, 
+    address[] token_addrs
+    );
 
+    event transferSuccess(
+    uint256 NFT_id,
+    address from,
+    address to,
+    uint256 transfer_price
+    );
 }
