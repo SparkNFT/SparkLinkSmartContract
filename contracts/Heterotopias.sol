@@ -29,10 +29,10 @@ contract royaltyNFT is ERC721URIStorage , Ownable{
         // Metadata json file.
         string name;
         // issue's name
-        mapping (address => uint256) baseline;
+        mapping (address => uint256) base_royaltyfee;
         // List of tokens(address) can be accepted for payment.
         // And specify the min fee should be toke when series of NFTs are sold.
-        // If baseline[tokens] == 0, then this token will not be accepted.
+        // If base_royaltyfee[tokens] == 0, then this token will not be accepted.
         // `A token address` can be ERC-20 token contract address or `address(0)`(ETH).
         mapping (address => uint256) first_sell_price;
         // The price should be payed when this series NTFs are minted.
@@ -42,7 +42,7 @@ contract royaltyNFT is ERC721URIStorage , Ownable{
         // Information used to decribe an NFT.
         uint256 NFT_id;
         // Index of this NFT.
-        uint256 price;
+        uint256 transfer_price;
         // The price of the NFT in the transaction is determined before the transaction.
         address token_addr;
         // The tokens used in this transcation, determined together with the price.
@@ -54,7 +54,7 @@ contract royaltyNFT is ERC721URIStorage , Ownable{
     event determinePriceSuccess(
         uint256 NFT_id,
         address token_addr,
-        uint256 price
+        uint256 transfer_price
     );
     // ? 在一个event中塞进去多个数组会不会影响gas开销
     event publishSuccess(
@@ -63,16 +63,24 @@ contract royaltyNFT is ERC721URIStorage , Ownable{
         address publisher,
         uint256 total_edition_amount,
         uint8 royalty_fee,
-	    address[] supported_token_addrs,
-	    uint256[] baseline,
+	    address[] token_addrs,
+	    uint256[] base_royaltyfee,
 	    uint256[] first_sell_price
     );
 
+    event mintSuccess (
+        address publisher,
+        uint256 NFT_id,
+        uint256 transfer_price,
+        address transfer_token_addr,
+        address minter
+    );
     event transferSuccess(
-        uint256 NFT_id;
+        uint256 NFT_id,
         address from,
         address to,
-        uint256 price
+        uint256 transfer_price,
+        address transfer_token_addr
     );
 
     //----------------------------------------------------------------------------------------------------
@@ -102,9 +110,9 @@ contract royaltyNFT is ERC721URIStorage , Ownable{
      // 但是大部分地方能看到的都是memory
     function publish(
         address[] memory _token_addrs, 
-        uint256[] memory _base_prices,
+        uint256[] memory _base_royaltyfee,
         uint256[] memory _first_sell_price,
-        uint8 _royalty_fee，
+        uint8 _royalty_fee,
         uint64 _total_edition_amount,
         string _name,
         string _ipfs_hash
@@ -116,15 +124,17 @@ contract royaltyNFT is ERC721URIStorage , Ownable{
         Issue storage new_issue = issues_by_id[new_issue_id];
         new_issue.name = _name;
         new_issue.issue_id = new_issue_id;
+        new_issue.publisher = msg.sender;
         new_issue.royalty_fee = _royalty_fee;
         new_issue.total_edition_amount = _total_edition_amount;
         new_issue.remain_edition_amount = _total_edition_amount;
         // ?此处的ipfshash是代表着pdf还是metadata
         new_issue.ipfs_hash = _ipfs_hash;
         for (int _token_addr_id = 0; _token_addr_id < _token_addrs.length; _token_addr_id++){
-            new_issue.baseline[_token_addr[_token_addr_id]] = _base_prices[_token_addr_id];
+            new_issue.base_royaltyfee[_token_addr[_token_addr_id]] = _base_royaltyfee[_token_addr_id];
             new_issue.first_sell_price[_token_addr[_token_addr_id]] = _first_sell_price[_token_addr_id];
         }
+        emit publishSuccess();
     }
     function mintNFT(
         uint192 _issue_id, 
@@ -167,6 +177,9 @@ contract royaltyNFT is ERC721URIStorage , Ownable{
         editions_by_id[_NFT_id].token_addr = _token_addr;
         emit determinePriceSuccess(_NFT_id, _token_addr, _price);
     }
+
+    
+
     function _beforeTokenTransfer (
         address from,
         address to,
