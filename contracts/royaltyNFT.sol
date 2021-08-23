@@ -65,6 +65,12 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         address token_addr,
         uint256 transfer_price
     );
+    event determinePriceAndApproveSuccess(
+        uint256 NFT_id,
+        address token_addr,
+        uint256 transfer_price,
+        address to
+    );
     // ? 在一个event中塞进去多个数组会不会影响gas开销
     event publishSuccess(
         string name,
@@ -256,8 +262,6 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         _balances[owner] -= 1;
         delete _owners[tokenId];
 
-        _beforeTokenTransfer(owner, address(0), tokenId);
-
         if (bytes(_tokenURIs[tokenId]).length != 0) {
             delete _tokenURIs[tokenId];
         }
@@ -281,6 +285,7 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
      // ？ 这个地方有个问题，按照这篇文章https://gus-tavo-guim.medium.com/public-vs-external-functions-in-solidity-b46bcf0ba3ac
      // 在external函数之中使用calldata进行传参数的gas消耗应该会更少一点
      // 但是大部分地方能看到的都是memory
+     // 如何检测他传入的erc20地址是一个正常的地址
     function publish(
         address[] memory _token_addrs, 
         uint256[] memory _base_royaltyfee,
@@ -290,9 +295,14 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         string memory _issue_name,
         string memory _ipfs_hash
     ) external {
+        require(_royalty_fee <= 100, "royaltyNFT: royalty fee should less than 100.");
+        require(_token_addrs.length == _base_royaltyfee.length && _base_royaltyfee.length == _first_sell_price.length, 
+                "royaltyNFT: token address array length should be equal to others.");
         _issueIds.increment();
         uint192 max_192 = type(uint192).max;
-        require((_issueIds.current()) <= max_192, "royaltyNFT: value doesn't fit in 192 bits");
+        uint64 max_64 = type(uint64).max;
+        require(_total_edition_amount <= max_64, "royaltyNFT: Edition amount doesn't fit in 64 bits");
+        require((_issueIds.current()) <= max_192, "royaltyNFT: Issue id doesn't fit in 192 bits");
         uint192 new_issue_id = uint64(_issueIds.current());
         Issue storage new_issue = issues_by_id[new_issue_id];
         new_issue.name = _issue_name;
@@ -381,14 +391,23 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         address _token_addr,
         uint256 _price
     ) public {
+        require(isEditionExist(_NFT_id), "royaltyNFT: The NFT you want to buy is not exist.");
         require(msg.sender == ownerOf(_NFT_id), "royaltyNFT: NFT's price should set by onwer of it.");
+        require(issues_by_id[getIssueIdByNFTId(_NFT_id)].base_royaltyfee[_token_addr] != 0, "royaltyNFT: The token your selected is not supported.");
         editions_by_id[_NFT_id].transfer_price = _price;
         editions_by_id[_NFT_id].token_addr = _token_addr;
+        editions_by_id[_NFT_id].is_on_sale = true;
         emit determinePriceSuccess(_NFT_id, _token_addr, _price);
     }
 
-    function determinePriceAndApprove() public {
-        
+    function determinePriceAndApprove(
+        uint256 _NFT_id, 
+        address _token_addr,
+        uint256 _price,
+        address _to
+    ) public {
+        determinePrice(_NFT_id, _token_addr, _price);
+        approve(_to, _NFT_id);
     }
     
 
@@ -398,15 +417,15 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         uint256 NFT_id
     ) internal {
         
-        if (to != issues_by_id[getIssueIdByNFTId(NFT_id)].publisher && from != issues_by_id[getIssueIdByNFTId(NFT_id)]) {
-            require(editions_by_id[NFT_id].price != 0, "royaltyNFT: price should be set");
+        if (to != issues_by_id[getIssueIdByNFTId(NFT_id)].publisher && from != issues_by_id[getIssueIdByNFTId(NFT_id)].publisher) {
+            require(editions_by_id[NFT_id].transfer_price != 0, "royaltyNFT: price should be set");
             // 抽手续费
         } 
     }
     function _afterTokenTransfer (
         uint256 _NFT_id
     ) internal {
-        editions_by_id[_NFT_id].price = 0;
+        editions_by_id[_NFT_id].transfer_price = 0;
     }
 
     function transferFrom(
@@ -431,14 +450,10 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         _afterTokenTransfer(NFT_id);
     }
     function isIssueExist(uint192 _issue_id) public view returns (bool) {
-        if (issues_by_id[_issue_id].issue_id == 0)
-            return false;
-        return true;
+        return (issues_by_id[_issue_id].issue_id != 0);
     }
     function isEditionExist(uint256 _NFT_id) public view returns (bool) {
-        if (editions_by_id[_NFT_id].NFT_id == 0)
-            return false;
-        return true;
+        return (editions_by_id[_NFT_id].NFT_id != 0);
     }
 
     function getIssueIdByNFTId(uint256 _NFT_id) public view returns (uint192) {
