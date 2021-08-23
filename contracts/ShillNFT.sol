@@ -50,6 +50,7 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         uint256 father_id;
         // Index of this NFT.
         uint256 transfer_price;
+        uint256 shillPrice;
         // The price of the NFT in the transaction is determined before the transaction.
         bool is_on_sale;
         uint64 remain_edition_amount;
@@ -327,20 +328,33 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         new_issue.total_amount = 0;
         new_issue.ipfs_hash = _ipfs_hash;
     }
-    function buy(
-        uint128 _issue_id
+    function accepetShill(
+        uint256 _NFT_id
     ) public payable {
-        require(isIssueExist(_issue_id), "ShillNFT: This issue is not exist.");
-        require(issues_by_id[_issue_id].first_sell_price[_token_addr] != 0, "ShillNFT: The token your selected is not supported.");
-        require(msg.value == issues_by_id[_issue_id].first_sell_price[_token_addr], "ShillNFT: not enought ETH");
-        issues_by_id[_issue_id].publisher.transfer(issues_by_id[_issue_id].first_sell_price[_token_addr]);
+        require(isEditionExist(_NFT_id), "ShillNFT: This NFT is not exist.");
+        require(editions_by_id[_NFT_id].remain_edition_amount > 0, "ShillNFT: There is no remain shill times for this NFT.");
+        require(msg.value == editions_by_id[_NFT_id].shillPrice, "ShillNFT: not enought ETH");
+        address payable grandFather = editions_by_id[_NFT_id].father_id;
+        if (grandFather == address(0)) {
+            profit[ownerOf(_NFT_id)].add(editions_by_id[_NFT_id].shillPrice);
+        }
+        else {
+            profit[ownerOf(_NFT_id)].add(
+                editions_by_id[_NFT_id].shillPrice-calculateFee(editions_by_id[_NFT_id].shillPrice, issues_by_id[getIssueIdByNFTId(_NFT_id)].royalty_fee));
+            profit[ownerOf(grandFather)].add(
+            editions_by_id[calculateFee(editions_by_id[_NFT_id].shillPrice, issues_by_id[getIssueIdByNFTId(_NFT_id)].royalty_fee));
+
+        }
+        profit[ownerOf(_NFT_id)].add(
+            editions_by_id[_NFT_id].shillPrice-calculateFee(editions_by_id[_NFT_id].shillPrice, issues_by_id[getIssueIdByNFTId(_NFT_id)]));
+        profit[ownerOf(editions_by_id[_NFT_id].father_id)].add(
+            editions_by_id[calculateFee(editions_by_id[_NFT_id].shillPrice, issues_by_id[getIssueIdByNFTId(_NFT_id)]));
         uint256 NFT_id = _mintNFT(_issue_id);
 
         emit buySuccess (
             issues_by_id[_issue_id].publisher,
             NFT_id,
             issues_by_id[_issue_id].first_sell_price[_token_addr],
-            msg.sender
         );
 
     }
@@ -353,6 +367,8 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         new_NFT.NFT_id = new_NFT_id;
         new_NFT.transfer_price = 0;
         new_NFT.is_on_sale = false;
+        new_NFT.father = 0;
+        new_NFT.shillPrice = issues_by_id[_issue_id].first_sell_price;
         new_NFT.remain_edition_amount = issues_by_id[_issue_id].shill_times;
         _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
         _safeMint(msg.sender, new_NFT_id);
@@ -362,10 +378,9 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
     function _mintNFT(
         uint256 _NFT_id
     ) internal returns (uint256) {
-        require(editions_by_id[_NFT_id].remain_edition_amount > 0, "ShillNFT: There is no remain shill times for this NFT.");
         uint128 max_128 = type(uint128).max;
         uint128 _issue_id = getIssueIdByNFTId(_NFT_id);
-        issues_by_id[_issue_id].total_amount += 1;
+        issues_by_id[_issue_id].total_amount.add(1);
         require(issues_by_id[_issue_id].total_amount < max_128, "ShillNFT: There is no left in this issue.");
         uint128 new_edition_id = issues_by_id[_issue_id].total_amount;
         uint256 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
@@ -373,8 +388,10 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         new_NFT.NFT_id = new_NFT_id;
         new_NFT.remain_edition_amount = issues_by_id[_issue_id].shill_times;
         new_NFT.transfer_price = 0;
+        new_NFT.father = _NFT_id;
+        new_NFT.shillPrice = editions_by_id[_NFT_id].shillPrice - calculateFee(editions_by_id[_NFT_id].shillPrice, issues_by_id[_issue_id].loss_ratio);
         new_NFT.is_on_sale = false;
-        issues_by_id[_issue_id].remain_edition_amount -= 1;
+        editions_by_id[_NFT_id].remain_edition_amount -= 1;
         _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
         _safeMint(msg.sender, new_NFT_id);
         return new_NFT_id;
@@ -509,7 +526,12 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
 
         emit Transfer(from, to, tokenId);
     }
-
+    function claimProfit() public {
+        require(profit[msg.sender] != 0, "ShillNFT: There is no profit to be claimed.");
+        payable(msg.sender).transfer(profit[msg.sender]);
+        profit[msg.sender] = 0;
+        emit;
+    }
      /**
      * @dev Safely transfers `tokenId` token from `from` to `to`, checking first that contract recipients
      * are aware of the ERC721 protocol to prevent tokens from being forever locked.
@@ -655,8 +677,8 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
      * and stop existing when they are burned (`_burn`).
      */
 
-    function calculateRoyaltyFee(uint256 _amount, uint8 _royalty_fee) internal pure returns (uint256) {
-        return _amount.mul(_royalty_fee).div(
+    function calculateFee(uint256 _amount, uint8 _fee_percent) internal pure returns (uint256) {
+        return _amount.mul(_fee_percent).div(
             10**2
         );
     }
