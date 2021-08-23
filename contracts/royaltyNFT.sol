@@ -73,8 +73,14 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
     );
     // ? 在一个event中塞进去多个数组会不会影响gas开销
     event publishSuccess(
-        uint192 issue_id,
-        address[] token_addrs
+	    string name, 
+	    uint256 issue_id,
+        address publisher,
+        uint256 total_edition_amount,
+        uint8 royalty_fee,
+        address[] token_addrs,
+        uint256[] base_royaltyfee,
+        uint256[] first_sell_price
     );
     // 三个数组变量需要用其他的办法获取，比如说public函数，不能够放在一个事件里面
 
@@ -290,6 +296,27 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         require(_total_edition_amount <= max_64, "royaltyNFT: Edition amount doesn't fit in 64 bits");
         require((_issueIds.current()) <= max_192, "royaltyNFT: Issue id doesn't fit in 192 bits");
         uint192 new_issue_id = uint64(_issueIds.current());
+        _publish(new_issue_id, _token_addrs, _base_royaltyfee, _first_sell_price, _royalty_fee, _total_edition_amount, _issue_name, _ipfs_hash);
+        emit publishSuccess(
+            issues_by_id[new_issue_id].name, 
+            issues_by_id[new_issue_id].issue_id,
+            issues_by_id[new_issue_id].publisher,
+            issues_by_id[new_issue_id].total_edition_amount,
+            issues_by_id[new_issue_id].royalty_fee,
+            _token_addrs,
+            _base_royaltyfee,
+            _first_sell_price
+        );
+    }
+    function _publish(
+        uint192 new_issue_id,
+        address[] memory _token_addrs, 
+        uint256[] memory _base_royaltyfee,
+        uint256[] memory _first_sell_price,
+        uint8 _royalty_fee,
+        uint64 _total_edition_amount,
+        string memory _issue_name,
+        string memory _ipfs_hash) internal {
         Issue storage new_issue = issues_by_id[new_issue_id];
         new_issue.name = _issue_name;
         new_issue.issue_id = new_issue_id;
@@ -303,13 +330,7 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
             new_issue.base_royaltyfee[_token_addrs[_token_addr_id]] = _base_royaltyfee[_token_addr_id];
             new_issue.first_sell_price[_token_addrs[_token_addr_id]] = _first_sell_price[_token_addr_id];
         }
-        emit publishSuccess(
-            new_issue.issue_id,
-            _token_addrs
-
-        );
     }
-
     function buy(
         uint192 _issue_id, 
         address _token_addr
@@ -534,16 +555,6 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
     function setRoyaltyPercent(uint64 _issue_id, uint8 _royalty_fee) external {
         require(_royalty_fee <= 100, "royaltyNFT: royalty fee can not exceed 100.");
         issues_by_id[_issue_id].royalty_fee = _royalty_fee;
-    } /**
-     * @dev Returns whether `tokenId` exists.
-     *
-     * Tokens can be managed by their owner or approved accounts via {approve} or {setApprovalForAll}.
-     *
-     * Tokens start existing when they are minted (`_mint`),
-     * and stop existing when they are burned (`_burn`).
-     */
-    function _exists(uint256 tokenId) internal view virtual returns (bool) {
-        return _owners[tokenId] != address(0);
     }
 
     /**
@@ -653,6 +664,17 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         } else {
             return true;
         }
+    } 
+    /**
+     * @dev Returns whether `tokenId` exists.
+     *
+     * Tokens can be managed by their owner or approved accounts via {approve} or {setApprovalForAll}.
+     *
+     * Tokens start existing when they are minted (`_mint`),
+     * and stop existing when they are burned (`_burn`).
+     */
+    function _exists(uint256 tokenId) internal view returns (bool) {
+        return _owners[tokenId] != address(0);
     }
     function isIssueExist(uint192 _issue_id) public view returns (bool) {
         return (issues_by_id[_issue_id].issue_id != 0);
