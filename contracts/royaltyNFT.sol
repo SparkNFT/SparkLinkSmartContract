@@ -23,14 +23,14 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         // The publisher publishes a series of NFTs with the same content and different NFT_id each time.
         // This structure is used to store the public attributes of same series of NFTs.
         uint192 issue_id;
+        // Number of NFTs have not been minted in this series
+        uint8 royalty_fee;
         // Used to identify which series it is.
         address payable publisher;
         // Publisher of this series NFTs
         uint64 total_edition_amount;
         // Number of NFTs included in this series
         uint64 remain_edition_amount;
-        // Number of NFTs have not been minted in this series
-        uint8 royalty_fee;
         // royalty_fee for every transfer expect from or to exclude address, max is 100;
         string ipfs_hash;
         // Metadata json file.
@@ -73,11 +73,7 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
     );
     // ? 在一个event中塞进去多个数组会不会影响gas开销
     event publishSuccess(
-        string name,
-        uint192 issue_id,
-        address payable publisher,
-        uint256 total_edition_amount,
-        uint8 royalty_fee
+        uint192 issue_id
     );
     // 三个数组变量需要用其他的办法获取，比如说public函数，不能够放在一个事件里面
 
@@ -207,8 +203,8 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         return _operatorApprovals[owner][operator];
     }
 
-    function _baseURI() internal view returns (string memory) {
-        return "ipfs.io/ipfs/";
+    function _baseURI() internal pure returns (string memory) {
+        return "https://ipfs.io/ipfs/";
     } /**
      * @dev See {IERC721Metadata-tokenURI}.
      */
@@ -217,17 +213,8 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
 
         string memory _tokenURI = _tokenURIs[tokenId];
         string memory base = _baseURI();
-
-        // If there is no base URI, return the token URI.
-        if (bytes(base).length == 0) {
-            return _tokenURI;
-        }
-        // If both are set, concatenate the baseURI and tokenURI (via abi.encodePacked).
-        if (bytes(_tokenURI).length > 0) {
-            return string(abi.encodePacked(base, _tokenURI));
-        }
-
-        return bytes(base).length > 0 ? string(abi.encodePacked(base, uint256Tostr(tokenId))) : "";
+        return string(abi.encodePacked(base, _tokenURI));
+        
     }
 
     /**
@@ -316,11 +303,7 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
             new_issue.first_sell_price[_token_addrs[_token_addr_id]] = _first_sell_price[_token_addr_id];
         }
         emit publishSuccess(
-            new_issue.name, 
-            new_issue.issue_id, 
-            new_issue.publisher, 
-            new_issue.total_edition_amount, 
-            new_issue.royalty_fee
+            new_issue.issue_id
         );
     }
 
@@ -390,7 +373,10 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         require(isEditionExist(_NFT_id), "royaltyNFT: The NFT you want to buy is not exist.");
         require(msg.sender == ownerOf(_NFT_id), "royaltyNFT: NFT's price should set by onwer of it.");
         require(issues_by_id[getIssueIdByNFTId(_NFT_id)].base_royaltyfee[_token_addr] != 0, "royaltyNFT: The token your selected is not supported.");
-        editions_by_id[_NFT_id].transfer_price = _price;
+        if (_price < issues_by_id[getIssueIdByNFTId(_NFT_id)].base_royaltyfee[_token_addr])
+            editions_by_id[_NFT_id].transfer_price = issues_by_id[getIssueIdByNFTId(_NFT_id)].base_royaltyfee[_token_addr];
+        else 
+            editions_by_id[_NFT_id].transfer_price = _price;
         editions_by_id[_NFT_id].token_addr = _token_addr;
         editions_by_id[_NFT_id].is_on_sale = true;
         emit determinePriceSuccess(_NFT_id, _token_addr, _price);
@@ -425,7 +411,6 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
             if (royalty_fee < issues_by_id[getIssueIdByNFTId(NFT_id)].base_royaltyfee[editions_by_id[NFT_id].token_addr]){
                 royalty_fee = issues_by_id[getIssueIdByNFTId(NFT_id)].base_royaltyfee[editions_by_id[NFT_id].token_addr];
             }
-            // 如果大于存在一个改价的情况
             if (editions_by_id[NFT_id].token_addr == address(0)) {
                 require(msg.value == editions_by_id[NFT_id].transfer_price, "royaltyNFT: not enought ETH");
                 issues_by_id[getIssueIdByNFTId(NFT_id)].publisher.transfer(royalty_fee);
@@ -543,7 +528,7 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         return (editions_by_id[_NFT_id].NFT_id != 0);
     }
 
-    function getIssueIdByNFTId(uint256 _NFT_id) public view returns (uint192) {
+    function getIssueIdByNFTId(uint256 _NFT_id) public pure returns (uint192) {
         return uint192(_NFT_id >> 64);
     }
 
@@ -555,7 +540,7 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         return NFT_ids;
     }
 
-    function calculateRoyaltyFee(uint256 _amount, uint8 _royalty_fee) private view returns (uint256) {
+    function calculateRoyaltyFee(uint256 _amount, uint8 _royalty_fee) private pure returns (uint256) {
         return _amount.mul(_royalty_fee).div(
             10**2
         );
@@ -684,22 +669,5 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
             return true;
         }
     }
-    function uint256Tostr(uint256 _i) internal pure returns (string memory _uintAsString) {
-    if (_i == 0) {
-        return "0";
-    }
-    uint256 j = _i;
-    uint256 len;
-    while (j != 0) {
-        len++;
-        j /= 10;
-    }
-    bytes memory bstr = new bytes(len);
-    uint256 k = len - 1;
-    while (_i != 0) {
-        bstr[k--] = bytes1(uint8(48 + _i % 10));
-        _i /= 10;
-    }
-    return string(bstr);
-}
+    
 }
