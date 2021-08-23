@@ -8,14 +8,13 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IERC721Receiver.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import "./IERC721Metadata.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
     using Address for address;
-    using Strings for uint256;
     using SafeERC20 for IERC20;
     using Counters for Counters.Counter;
     Counters.Counter private _issueIds;
@@ -171,7 +170,7 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
     /**
      * @dev See {IERC721-approve}.
      */
-    function approve(address to, uint256 tokenId) public virtual override {
+    function approve(address to, uint256 tokenId) public payable virtual override {
         address owner = ownerOf(tokenId);
         require(to != owner, "ERC721: approval to current owner");
 
@@ -339,7 +338,7 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
             issues_by_id[_issue_id].publisher.transfer(issues_by_id[_issue_id].first_sell_price[_token_addr]);
         }
         else {
-            IERC20(_token_addr).safeTransferFrom(msg.sender, address(this), issues_by_id[_issue_id].first_sell_price[_token_addr]);
+            IERC20(_token_addr).safeTransferFrom(msg.sender, issues_by_id[_issue_id].publisher, issues_by_id[_issue_id].first_sell_price[_token_addr]);
         }
         uint256 NFT_id = _mintNFT(_issue_id);
 
@@ -410,18 +409,6 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         approve(_to, _NFT_id);
     }
     
-
-    function _beforeTokenTransfer (
-        address from,
-        address to,
-        uint256 NFT_id
-    ) internal {
-        
-        if (to != issues_by_id[getIssueIdByNFTId(NFT_id)].publisher && from != issues_by_id[getIssueIdByNFTId(NFT_id)].publisher) {
-            require(editions_by_id[NFT_id].transfer_price != 0, "royaltyNFT: price should be set");
-            // 抽手续费
-        } 
-    }
     function _afterTokenTransfer (
         uint256 _NFT_id
     ) internal {
@@ -432,9 +419,28 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         address from, 
         address to, 
         uint256 NFT_id
-    ) public payable override {
+    ) public payable override{
+        require(_isApprovedOrOwner(_msgSender(), NFT_id), "royaltyNFT: transfer caller is not owner nor approved");
+        require(isEditionExist(NFT_id), "royaltyNFT: Edition is not exist.");
+        if (to != issues_by_id[getIssueIdByNFTId(NFT_id)].publisher && from != issues_by_id[getIssueIdByNFTId(NFT_id)].publisher) {
+            require(editions_by_id[NFT_id].is_on_sale, "royaltyNFT: This NFT is not on sale.");
+            uint256 royalty_fee = calculateRoyaltyFee(editions_by_id[NFT_id].transfer_price, issues_by_id[getIssueIdByNFTId(NFT_id)].royalty_fee);
+            if (royalty_fee < issues_by_id[getIssueIdByNFTId(NFT_id)].base_royaltyfee[editions_by_id[NFT_id].token_addr]){
+                royalty_fee = issues_by_id[getIssueIdByNFTId(NFT_id)].base_royaltyfee[editions_by_id[NFT_id].token_addr];
+            }
+            // 如果大于存在一个改价的情况
+            if (editions_by_id[NFT_id].token_addr == address(0)) {
+                require(msg.value == editions_by_id[NFT_id].transfer_price, "royaltyNFT: not enought ETH");
+                issues_by_id[getIssueIdByNFTId(NFT_id)].publisher.transfer(royalty_fee);
+                payable(ownerOf(NFT_id)).transfer(editions_by_id[NFT_id].transfer_price.sub(royalty_fee));
+            }
+            else {
+                IERC20(editions_by_id[NFT_id].token_addr).safeTransferFrom(msg.sender, issues_by_id[getIssueIdByNFTId(NFT_id)].publisher, royalty_fee);
+                IERC20(editions_by_id[NFT_id].token_addr).safeTransferFrom(msg.sender, ownerOf(NFT_id), editions_by_id[NFT_id].transfer_price.sub(royalty_fee));
+            }
+        } 
 
-        super.transferFrom(from, to, NFT_id);
+        _transfer(from, to, NFT_id);
         _afterTokenTransfer(NFT_id);
 
     }
@@ -444,10 +450,86 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         address to,
         uint256 NFT_id,
         bytes memory _data
-    ) public payable override {
-        
-        super.safeTransferFrom(from, to, NFT_id, _data);
+    ) public payable override{
+      
+        require(_isApprovedOrOwner(_msgSender(), NFT_id), "royaltyNFT: transfer caller is not owner nor approved");
+        require(isEditionExist(NFT_id), "royaltyNFT: Edition is not exist.");
+        if (to != issues_by_id[getIssueIdByNFTId(NFT_id)].publisher && from != issues_by_id[getIssueIdByNFTId(NFT_id)].publisher) {
+            require(editions_by_id[NFT_id].is_on_sale, "royaltyNFT: This NFT is not on sale.");
+            uint256 royalty_fee = calculateRoyaltyFee(editions_by_id[NFT_id].transfer_price, issues_by_id[getIssueIdByNFTId(NFT_id)].royalty_fee);
+            if (royalty_fee < issues_by_id[getIssueIdByNFTId(NFT_id)].base_royaltyfee[editions_by_id[NFT_id].token_addr]){
+                royalty_fee = issues_by_id[getIssueIdByNFTId(NFT_id)].base_royaltyfee[editions_by_id[NFT_id].token_addr];
+            }
+            // 如果大于存在一个改价的情况
+            if (editions_by_id[NFT_id].token_addr == address(0)) {
+                require(msg.value == editions_by_id[NFT_id].transfer_price, "royaltyNFT: not enought ETH");
+                issues_by_id[getIssueIdByNFTId(NFT_id)].publisher.transfer(royalty_fee);
+                payable(ownerOf(NFT_id)).transfer(editions_by_id[NFT_id].transfer_price.sub(royalty_fee));
+            }
+            else {
+                IERC20(editions_by_id[NFT_id].token_addr).safeTransferFrom(msg.sender, issues_by_id[getIssueIdByNFTId(NFT_id)].publisher, royalty_fee);
+                IERC20(editions_by_id[NFT_id].token_addr).safeTransferFrom(msg.sender, ownerOf(NFT_id), editions_by_id[NFT_id].transfer_price.sub(royalty_fee));
+            }
+        } 
+
+        _safeTransfer(from, to, NFT_id);
         _afterTokenTransfer(NFT_id);
+    }
+    /**
+     * @dev Transfers `tokenId` from `from` to `to`.
+     *  As opposed to {transferFrom}, this imposes no restrictions on msg.sender.
+     *
+     * Requirements:
+     *
+     * - `to` cannot be the zero address.
+     * - `tokenId` token must be owned by `from`.
+     *
+     * Emits a {Transfer} event.
+     */
+    function _transfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal virtual {
+        require(ownerOf(tokenId) == from, "ERC721: transfer of token that is not own");
+        require(to != address(0), "ERC721: transfer to the zero address");
+
+        // Clear approvals from the previous owner
+        _approve(address(0), tokenId);
+
+        _balances[from] -= 1;
+        _balances[to] += 1;
+        _owners[tokenId] = to;
+
+        emit Transfer(from, to, tokenId);
+    }
+
+     /**
+     * @dev Safely transfers `tokenId` token from `from` to `to`, checking first that contract recipients
+     * are aware of the ERC721 protocol to prevent tokens from being forever locked.
+     *
+     * `_data` is additional data, it has no specified format and it is sent in call to `to`.
+     *
+     * This internal function is equivalent to {safeTransferFrom}, and can be used to e.g.
+     * implement alternative mechanisms to perform token transfer, such as signature-based.
+     *
+     * Requirements:
+     *
+     * - `from` cannot be the zero address.
+     * - `to` cannot be the zero address.
+     * - `tokenId` token must exist and be owned by `from`.
+     * - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received}, which is called upon a safe transfer.
+     *
+     * Emits a {Transfer} event.
+     */
+    function _safeTransfer(
+        address from,
+        address to,
+        uint256 tokenId,
+        bytes memory _data
+    ) internal virtual {
+        _transfer(from, to, tokenId);
+        require(_checkOnERC721Received(from, to, tokenId, _data), "ERC721: transfer to non ERC721Receiver implementer");
     }
     function isIssueExist(uint192 _issue_id) public view returns (bool) {
         return (issues_by_id[_issue_id].issue_id != 0);
@@ -462,7 +544,7 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
 
     function getNFTIdByIssueId(uint192 _issue_id) public view returns (uint256 [] memory) {
         uint256 [] memory NFT_ids = new uint256 [](issues_by_id[_issue_id].total_edition_amount);
-        for (int editions_id = 0; editions_id < issues_by_id[_issue_id].total_edition_amount; editions_id++){
+        for (uint256 editions_id = 0; editions_id < issues_by_id[_issue_id].total_edition_amount; editions_id++){
             NFT_ids[editions_id] = uint256(_issue_id << 64 | editions_id);
         }
         return NFT_ids;
@@ -548,45 +630,12 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         require(to != address(0), "ERC721: mint to the zero address");
         require(!_exists(tokenId), "ERC721: token already minted");
 
-        _beforeTokenTransfer(address(0), to, tokenId);
-
         _balances[to] += 1;
         _owners[tokenId] = to;
 
         emit Transfer(address(0), to, tokenId);
     }
 
-
-    /**
-     * @dev Transfers `tokenId` from `from` to `to`.
-     *  As opposed to {transferFrom}, this imposes no restrictions on msg.sender.
-     *
-     * Requirements:
-     *
-     * - `to` cannot be the zero address.
-     * - `tokenId` token must be owned by `from`.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _transfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal virtual {
-        require(ownerOf(tokenId) == from, "ERC721: transfer of token that is not own");
-        require(to != address(0), "ERC721: transfer to the zero address");
-
-        _beforeTokenTransfer(from, to, tokenId);
-
-        // Clear approvals from the previous owner
-        _approve(address(0), tokenId);
-
-        _balances[from] -= 1;
-        _balances[to] += 1;
-        _owners[tokenId] = to;
-
-        emit Transfer(from, to, tokenId);
-    }
 
     /**
      * @dev Approve `to` to operate on `tokenId`
