@@ -73,7 +73,8 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
     );
     // ? 在一个event中塞进去多个数组会不会影响gas开销
     event publishSuccess(
-        uint192 issue_id
+        uint192 issue_id,
+        address[] token_addrs
     );
     // 三个数组变量需要用其他的办法获取，比如说public函数，不能够放在一个事件里面
 
@@ -303,7 +304,9 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
             new_issue.first_sell_price[_token_addrs[_token_addr_id]] = _first_sell_price[_token_addr_id];
         }
         emit publishSuccess(
-            new_issue.issue_id
+            new_issue.issue_id,
+            _token_addrs
+
         );
     }
 
@@ -521,24 +524,6 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         _transfer(from, to, tokenId);
         require(_checkOnERC721Received(from, to, tokenId, _data), "ERC721: transfer to non ERC721Receiver implementer");
     }
-    function isIssueExist(uint192 _issue_id) public view returns (bool) {
-        return (issues_by_id[_issue_id].issue_id != 0);
-    }
-    function isEditionExist(uint256 _NFT_id) public view returns (bool) {
-        return (editions_by_id[_NFT_id].NFT_id != 0);
-    }
-
-    function getIssueIdByNFTId(uint256 _NFT_id) public pure returns (uint192) {
-        return uint192(_NFT_id >> 64);
-    }
-
-    function getNFTIdByIssueId(uint192 _issue_id) public view returns (uint256 [] memory) {
-        uint256 [] memory NFT_ids = new uint256 [](issues_by_id[_issue_id].total_edition_amount);
-        for (uint256 editions_id = 0; editions_id < issues_by_id[_issue_id].total_edition_amount; editions_id++){
-            NFT_ids[editions_id] = uint256(_issue_id << 64 | editions_id);
-        }
-        return NFT_ids;
-    }
 
     function calculateRoyaltyFee(uint256 _amount, uint8 _royalty_fee) private pure returns (uint256) {
         return _amount.mul(_royalty_fee).div(
@@ -669,5 +654,44 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
             return true;
         }
     }
-    
+    function isIssueExist(uint192 _issue_id) public view returns (bool) {
+        return (issues_by_id[_issue_id].issue_id != 0);
+    }
+    function isEditionExist(uint256 _NFT_id) public view returns (bool) {
+        return (editions_by_id[_NFT_id].NFT_id != 0);
+    }
+
+    function getIssueIdByNFTId(uint256 _NFT_id) public pure returns (uint192) {
+        return uint192(_NFT_id >> 64);
+    }
+
+    function getNFTIdByIssueId(uint192 _issue_id) public view returns (uint256 [] memory) {
+        require(isIssueExist(_issue_id), "royaltyNFT: This issue is not exist.");
+        uint256 [] memory NFT_ids = new uint256 [](issues_by_id[_issue_id].total_edition_amount);
+        for (uint256 editions_id = 0; editions_id < issues_by_id[_issue_id].total_edition_amount; editions_id++){
+            NFT_ids[editions_id] = uint256(_issue_id << 64 | editions_id);
+        }
+        return NFT_ids;
+    }
+    function getPublisherByIssueId(uint192 _issue_id) public view returns (address) {
+        require(isIssueExist(_issue_id), "royaltyNFT: This issue is not exist.");
+        return issues_by_id[_issue_id].publisher;
+    }
+    function getIssueNameByIssueId(uint192 _issue_id) public view returns (string memory) {
+        require(isIssueExist(_issue_id), "royaltyNFT: This issue is not exist.");
+        return issues_by_id[_issue_id].name;
+    }
+    function getRoyaltyFeeByIssueId(uint192 _issue_id) public view returns (uint8) {
+        require(isIssueExist(_issue_id), "royaltyNFT: This issue is not exist.");
+        return issues_by_id[_issue_id].royalty_fee;
+    }
+    function getPriceByNFTId(uint256 _NFT_id) public view returns (uint256) {
+        require(isEditionExist(_NFT_id), "royaltyNFT: Edition is not exist.");
+        return editions_by_id[_NFT_id].transfer_price;
+    }
+    function getTokenaddrByNFTId(uint256 _NFT_id) public view returns (address) {
+        require(isEditionExist(_NFT_id), "royaltyNFT: Edition is not exist.");
+        return editions_by_id[_NFT_id].token_addr;
+    }
+
 }
