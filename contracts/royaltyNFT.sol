@@ -17,6 +17,7 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
     using Address for address;
     using SafeERC20 for IERC20;
     using Counters for Counters.Counter;
+    using SafeMath for uint256;
     Counters.Counter private _issueIds;
     struct Issue {
         // The publisher publishes a series of NFTs with the same content and different NFT_id each time.
@@ -76,11 +77,9 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
         uint192 issue_id,
         address payable publisher,
         uint256 total_edition_amount,
-        uint8 royalty_fee,
-	    address[] token_addrs,
-	    uint256[] base_royaltyfee,
-	    uint256[] first_sell_price
+        uint8 royalty_fee
     );
+    // 三个数组变量需要用其他的办法获取，比如说public函数，不能够放在一个事件里面
 
     event buySuccess (
         address publisher,
@@ -228,7 +227,7 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
             return string(abi.encodePacked(base, _tokenURI));
         }
 
-        return bytes(base).length > 0 ? string(abi.encodePacked(base, tokenId.toString())) : "";
+        return bytes(base).length > 0 ? string(abi.encodePacked(base, uint256Tostr(tokenId))) : "";
     }
 
     /**
@@ -321,10 +320,8 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
             new_issue.issue_id, 
             new_issue.publisher, 
             new_issue.total_edition_amount, 
-            new_issue.royalty_fee,
-	        _token_addrs,
-	        _base_royaltyfee,
-	        _first_sell_price);
+            new_issue.royalty_fee
+        );
     }
 
     function buy(
@@ -448,8 +445,7 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
     function safeTransferFrom(
         address from,
         address to,
-        uint256 NFT_id,
-        bytes memory _data
+        uint256 NFT_id
     ) public payable override{
       
         require(_isApprovedOrOwner(_msgSender(), NFT_id), "royaltyNFT: transfer caller is not owner nor approved");
@@ -472,8 +468,17 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
             }
         } 
 
-        _safeTransfer(from, to, NFT_id);
+        _safeTransfer(from, to, NFT_id, "");
         _afterTokenTransfer(NFT_id);
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 NFT_id,
+        bytes calldata _data
+    ) public payable override {
+        safeTransferFrom(from, to, NFT_id);
     }
     /**
      * @dev Transfers `tokenId` from `from` to `to`.
@@ -679,5 +684,22 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
             return true;
         }
     }
-
+    function uint256Tostr(uint256 _i) internal pure returns (string memory _uintAsString) {
+    if (_i == 0) {
+        return "0";
+    }
+    uint256 j = _i;
+    uint256 len;
+    while (j != 0) {
+        len++;
+        j /= 10;
+    }
+    bytes memory bstr = new bytes(len);
+    uint256 k = len - 1;
+    while (_i != 0) {
+        bstr[k--] = bytes1(uint8(48 + _i % 10));
+        _i /= 10;
+    }
+    return string(bstr);
+}
 }
