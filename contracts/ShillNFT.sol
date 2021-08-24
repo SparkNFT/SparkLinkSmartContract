@@ -18,6 +18,15 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
     using Counters for Counters.Counter;
     using SafeMath for uint256;
     Counters.Counter private _issueIds;
+    // 由于时间关系先写中文注释
+    // Issue 用于存储一系列的NFT，他们对应同一个URI，以及一系列相同的属性，在结构体中存储
+    // 重要的有royalty_fee 用于存储手续费抽成比例
+    // base_royaltyfee 当按照比例计算的手续费小于这个值的时候，取用这个值
+    // loss_ratio 当我们在链式mint NFT的时候，我希望能够通过数量的不断增多，强制底部的NFT mint的价格降低
+    // 以这样的方式增大其传播性，同时使得上层的NFT具备价值
+    // shill_times 代表这个issue中的一个NFT最多能够产出多少份子NFT
+    // total_amount 这个issue总共产出了多少份NFT，同时用于新产出的NFT标号，标号从1开始
+    // first_sell_price 规定了根节点的NFT mint 子节点的费用，之后所有的子节点mint出新节点的费用不会高于这个值
     struct Issue {
         // The publisher publishes a series of NFTs with the same content and different NFT_id each time.
         // This structure is used to store the public attributes of same series of NFTs.
@@ -43,7 +52,13 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         // 这两个mapping如果存在token_addr看价格是不可以等于0的，如果等于0的话会导致判不支持
         // 由于这个价格是写死的，可能会诱导用户的付款倾向
     }
-
+    // 存储NFT相关信息的结构体
+    // father_id存储它父节点NFT的id
+    // transfer_price 在决定出售的时候设定，买家调起transferFrom付款并转移
+    // shillPrice存储从这个子节点mint出新的NFT的价格是多少
+    // 此处可以优化，并不需要每一个节点都去存一个，只需要一层存一个就可以了，但是需要NFT_id调整编号的方式与节点在树上的位置强相关
+    // is_on_sale 在卖家决定出售的时候将其设置成true，交易完成时回归false，出厂默认为false
+    // remain_shill_times 记录该NFT剩余可以产生的NFT
     struct Edition {
         // Information used to decribe an NFT.
         uint256 NFT_id;
@@ -56,20 +71,24 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         uint64 remain_shill_times;
         // royalty_fee for every transfer expect from or to exclude address, max is 100;
     }
+    // 分别存储issue与editions
     mapping (uint256 => Issue) private issues_by_id;
     mapping (uint256 => Edition) private editions_by_id;
+    // 每个用户的获利由合约暂存，用户自行claim
+    // 也可以自动打到账上，待商议?
     mapping (address => uint256) private profit;
-    // Address which will not be taken fee in secondary transcation.
+    // 确定价格成功后的事件
     event determinePriceSuccess(
         uint256 NFT_id,
         uint256 transfer_price
     );
+    // 确定价格的同时approve买家可以操作owner的NFT
     event determinePriceAndApproveSuccess(
         uint256 NFT_id,
         uint256 transfer_price,
         address to
     );
-    // ? 在一个event中塞进去多个数组会不会影响gas开销
+    // 除上述变量外，该事件还返回根节点的NFTId
     event publishSuccess(
 	    string name, 
 	    uint128 issue_id,
@@ -81,8 +100,7 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         uint256 first_sell_price,
         uint256 rootNFTId
     );
-    // 三个数组变量需要用其他的办法获取，比如说public函数，不能够放在一个事件里面
-
+    // 子节点mint成功，加入了购买者和NFT_id的关系，可以配合transfer的log一起过滤获取某人的所有NFT_id
     event acceptShillSuccess (
         uint256 NFT_id,
         uint256 father_id,
@@ -95,6 +113,7 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         address to,
         uint256 transfer_price
     );
+    // 获取自己的收益成功
     event claimSuccess(
         address receiver,
         uint256 amount
@@ -276,7 +295,13 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
      // ？ 这个地方有个问题，按照这篇文章https://gus-tavo-guim.medium.com/public-vs-external-functions-in-solidity-b46bcf0ba3ac
      // 在external函数之中使用calldata进行传参数的gas消耗应该会更少一点
      // 但是大部分地方能看到的都是memory
-     // 如何检测他传入的erc20地址是一个正常的地址
+     
+    // publish函数分为这样几个部分
+    // 首先检验传入的参数是否正确，是否出现了不符合逻辑的上溢现象
+    // 然后获取issueid
+    // 接下来调用私有函数去把对应的变量赋值
+    // 初始化根节点NFT
+    // 触发事件，将数据上到log中
     function publish(
         uint256 _base_royaltyfee,
         uint256 _first_sell_price,
@@ -338,6 +363,29 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         new_issue.base_royaltyfee = _base_royaltyfee;
         new_issue.first_sell_price = _first_sell_price;
     }
+
+    function _initialRootEdition(uint128 _issue_id) internal returns (uint256) {
+        issues_by_id[_issue_id].total_amount += 1;
+        uint128 new_edition_id = issues_by_id[_issue_id].total_amount;
+        uint256 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
+        Edition storage new_NFT = editions_by_id[new_edition_id];
+        new_NFT.NFT_id = new_NFT_id;
+        new_NFT.transfer_price = 0;
+        new_NFT.is_on_sale = false;
+        new_NFT.father_id = 0;
+        new_NFT.shillPrice = issues_by_id[_issue_id].first_sell_price;
+        new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
+        _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
+        _safeMint(msg.sender, new_NFT_id);
+        return new_NFT_id;
+    }
+    // 由于存在loss ratio 我希望mint的时候始终按照比例收税
+    // 接受shill的函数，也就是mint新的NFT
+    // 传入参数是新的NFT的父节点的NFTid
+    // 首先还是检查参数是否正确，同时加入判断以太坊是否够用的检测
+    // 如果是根节点就不进行手续费扣款
+    // 接下来mintNFT
+    // 最后触发事件
     function accepetShill(
         uint256 _NFT_id
     ) public payable {
@@ -363,22 +411,6 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
             msg.sender
         );
 
-    }
-
-    function _initialRootEdition(uint128 _issue_id) internal returns (uint256) {
-        issues_by_id[_issue_id].total_amount += 1;
-        uint128 new_edition_id = issues_by_id[_issue_id].total_amount;
-        uint256 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
-        Edition storage new_NFT = editions_by_id[new_edition_id];
-        new_NFT.NFT_id = new_NFT_id;
-        new_NFT.transfer_price = 0;
-        new_NFT.is_on_sale = false;
-        new_NFT.father_id = 0;
-        new_NFT.shillPrice = issues_by_id[_issue_id].first_sell_price;
-        new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
-        _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
-        _safeMint(msg.sender, new_NFT_id);
-        return new_NFT_id;
     }
 
     function _mintNFT(
@@ -417,13 +449,14 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
      * - `_token_addr` address of the token this transcation used, address(0) represent ETH.
      * - `_price` The amount of `_token_addr` should be payed for `_NFT_id`
      */
+     // 设定NFT的转移价格，如果计算手续费后小于base line则强制为base line
     function determinePrice(
         uint256 _NFT_id,
         uint256 _price
     ) public {
         require(isEditionExist(_NFT_id), "ShillNFT: The NFT you want to buy is not exist.");
         require(msg.sender == ownerOf(_NFT_id), "ShillNFT: NFT's price should set by onwer of it.");
-        if (_price < issues_by_id[getIssueIdByNFTId(_NFT_id)].base_royaltyfee)
+        if (calculateFee(_price, getRoyaltyFeeByIssueId(getIssueIdByNFTId(_NFT_id)))  < issues_by_id[getIssueIdByNFTId(_NFT_id)].base_royaltyfee)
             editions_by_id[_NFT_id].transfer_price = issues_by_id[getIssueIdByNFTId(_NFT_id)].base_royaltyfee;
         else 
             editions_by_id[_NFT_id].transfer_price = _price;
@@ -439,7 +472,7 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         determinePrice(_NFT_id, _price);
         approve(_to, _NFT_id);
     }
-    
+    // 将flag在转移后重新设置
     function _afterTokenTransfer (
         uint256 _NFT_id
     ) internal {
@@ -725,6 +758,10 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
     function getLossRatioByIssueId(uint128 _issue_id) public view returns (uint8) {
         require(isIssueExist(_issue_id), "ShillNFT: This issue is not exist.");
         return issues_by_id[_issue_id].loss_ratio;
+    }
+    function getTotalAmountByIssueId(uint128 _issue_id) public view returns (uint128) {
+        require(isIssueExist(_issue_id), "ShillNFT: This issue is not exist.");
+        return issues_by_id[_issue_id].total_amount;
     }
     function getTransferPriceByNFTId(uint256 _NFT_id) public view returns (uint256) {
         require(isEditionExist(_NFT_id), "ShillNFT: Edition is not exist.");
