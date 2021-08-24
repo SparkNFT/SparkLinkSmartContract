@@ -53,7 +53,7 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         uint256 shillPrice;
         // The price of the NFT in the transaction is determined before the transaction.
         bool is_on_sale;
-        uint64 remain_edition_amount;
+        uint64 remain_shill_times;
         // royalty_fee for every transfer expect from or to exclude address, max is 100;
     }
     mapping (uint256 => Issue) private issues_by_id;
@@ -78,7 +78,8 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         uint8 loss_ratio,
         string ipfs_hash,
         uint256 base_royaltyfee,
-        uint256 first_sell_price
+        uint256 first_sell_price,
+        uint256 rootNFTId
     );
     // 三个数组变量需要用其他的办法获取，比如说public函数，不能够放在一个事件里面
 
@@ -303,7 +304,7 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
             _first_sell_price, 
             _ipfs_hash
         );
-        _initialRootEdition(new_issue_id);
+        uint256 rootNFTId =  _initialRootEdition(new_issue_id);
         emit publishSuccess(
             issues_by_id[new_issue_id].name, 
             issues_by_id[new_issue_id].issue_id,
@@ -312,7 +313,8 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
             issues_by_id[new_issue_id].loss_ratio,
             issues_by_id[new_issue_id].ipfs_hash,
             issues_by_id[new_issue_id].base_royaltyfee,
-            issues_by_id[new_issue_id].first_sell_price
+            issues_by_id[new_issue_id].first_sell_price,
+            rootNFTId
         );
     }
     function _publish(
@@ -333,12 +335,14 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         new_issue.shill_times = _shill_times;
         new_issue.total_amount = 0;
         new_issue.ipfs_hash = _ipfs_hash;
+        new_issue.base_royaltyfee = _base_royaltyfee;
+        new_issue.first_sell_price = _first_sell_price;
     }
     function accepetShill(
         uint256 _NFT_id
     ) public payable {
         require(isEditionExist(_NFT_id), "ShillNFT: This NFT is not exist.");
-        require(editions_by_id[_NFT_id].remain_edition_amount > 0, "ShillNFT: There is no remain shill times for this NFT.");
+        require(editions_by_id[_NFT_id].remain_shill_times > 0, "ShillNFT: There is no remain shill times for this NFT.");
         require(msg.value == editions_by_id[_NFT_id].shillPrice, "ShillNFT: not enought ETH");
         uint256 grandFather = editions_by_id[_NFT_id].father_id;
         if (grandFather == 0) {
@@ -371,7 +375,7 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         new_NFT.is_on_sale = false;
         new_NFT.father_id = 0;
         new_NFT.shillPrice = issues_by_id[_issue_id].first_sell_price;
-        new_NFT.remain_edition_amount = issues_by_id[_issue_id].shill_times;
+        new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
         _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
         _safeMint(msg.sender, new_NFT_id);
         return new_NFT_id;
@@ -388,12 +392,12 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         uint256 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
         Edition storage new_NFT = editions_by_id[new_edition_id];
         new_NFT.NFT_id = new_NFT_id;
-        new_NFT.remain_edition_amount = issues_by_id[_issue_id].shill_times;
+        new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
         new_NFT.transfer_price = 0;
         new_NFT.father_id = _NFT_id;
         new_NFT.shillPrice = editions_by_id[_NFT_id].shillPrice - calculateFee(editions_by_id[_NFT_id].shillPrice, issues_by_id[_issue_id].loss_ratio);
         new_NFT.is_on_sale = false;
-        editions_by_id[_NFT_id].remain_edition_amount -= 1;
+        editions_by_id[_NFT_id].remain_shill_times -= 1;
         _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
         _safeMint(msg.sender, new_NFT_id);
         return new_NFT_id;
@@ -691,6 +695,7 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         );
     }
 
+
     function getNftIdByEditionIdAndIssueId(uint128 _issue_id, uint128 _edition_id) internal pure returns (uint256) {
         return (uint256(_issue_id)<<128)|uint256(_edition_id);
     }
@@ -698,7 +703,7 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
     function _exists(uint256 tokenId) internal view returns (bool) {
         return _owners[tokenId] != address(0);
     }
-    function isIssueExist(uint192 _issue_id) public view returns (bool) {
+    function isIssueExist(uint128 _issue_id) public view returns (bool) {
         return (issues_by_id[_issue_id].issue_id != 0);
     }
     function isEditionExist(uint256 _NFT_id) public view returns (bool) {
@@ -709,17 +714,33 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         return uint128(_NFT_id >> 128);
     }
 
-    function getIssueNameByIssueId(uint192 _issue_id) public view returns (string memory) {
+    function getIssueNameByIssueId(uint128 _issue_id) public view returns (string memory) {
         require(isIssueExist(_issue_id), "ShillNFT: This issue is not exist.");
         return issues_by_id[_issue_id].name;
     }
-    function getRoyaltyFeeByIssueId(uint192 _issue_id) public view returns (uint8) {
+    function getRoyaltyFeeByIssueId(uint128 _issue_id) public view returns (uint8) {
         require(isIssueExist(_issue_id), "ShillNFT: This issue is not exist.");
         return issues_by_id[_issue_id].royalty_fee;
     }
-    function getPriceByNFTId(uint256 _NFT_id) public view returns (uint256) {
+    function getLossRatioByIssueId(uint128 _issue_id) public view returns (uint8) {
+        require(isIssueExist(_issue_id), "ShillNFT: This issue is not exist.");
+        return issues_by_id[_issue_id].loss_ratio;
+    }
+    function getTransferPriceByNFTId(uint256 _NFT_id) public view returns (uint256) {
         require(isEditionExist(_NFT_id), "ShillNFT: Edition is not exist.");
         return editions_by_id[_NFT_id].transfer_price;
+    }
+    function getShillPriceByNFTId(uint256 _NFT_id) public view returns (uint256) {
+        require(isEditionExist(_NFT_id), "ShillNFT: Edition is not exist.");
+        return editions_by_id[_NFT_id].shillPrice;
+    }
+    function getRemainShillTimesByNFTId(uint256 _NFT_id) public view returns (uint64) {
+        require(isEditionExist(_NFT_id), "ShillNFT: Edition is not exist.");
+        return editions_by_id[_NFT_id].remain_shill_times;
+    }
+    function isNFTOnSale(uint256 _NFT_id) public view returns (bool) {
+        require(isEditionExist(_NFT_id), "ShillNFT: Edition is not exist.");
+        return editions_by_id[_NFT_id].is_on_sale;
     }
 
 }
