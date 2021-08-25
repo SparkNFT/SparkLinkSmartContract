@@ -348,6 +348,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         Edition storage new_NFT = editions_by_id[new_edition_id];
         new_NFT.NFT_id = new_NFT_id;
         new_NFT.transfer_price = 0;
+        new_NFT.profit = 0;
         new_NFT.is_on_sale = false;
         new_NFT.father_id = 0;
         new_NFT.shillPrice = issues_by_id[_issue_id].first_sell_price;
@@ -355,6 +356,12 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         
         _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
         _safeMint(msg.sender, new_NFT_id);
+        emit Mint(
+            new_NFT_id,
+            0,
+            msg.sender,
+            new_NFT
+        );
         return new_NFT_id;
     }
     // 由于存在loss ratio 我希望mint的时候始终按照比例收税
