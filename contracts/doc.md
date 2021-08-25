@@ -95,3 +95,6 @@ edition如何编号？
 
 
 发现了一个安全问题，claim的时候没有做owner检查，但好像又没什么问题，那是累计收益，transfer之后不会再被计算了所以好像也OK，不用检查。
+
+
+貌似我在每一个Edition里面设置一个奖金池，然后对一个单个NFT进行claim这个方法是OK的，代价是必须要一个一个得收米，也就是将claim和owner解耦，这样貌似就不会造成我需要弄个iterablemapping的问题了。
