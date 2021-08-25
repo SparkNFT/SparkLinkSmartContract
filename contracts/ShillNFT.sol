@@ -763,4 +763,28 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         return editions_by_id[_NFT_id].is_on_sale;
     }
 
+
+    // 此处返回的是扣除税率的价格
+    function calculateProfit(address _owner) public view returns (uint256) {
+        uint256 amount = 0;
+       for (uint256 index = 0; index < profit[_owner].size(); index++) {
+            uint256 _NFT_id = profit[_owner].getKeyAtIndex(index);
+            uint256 _value = profit[_owner].get(_NFT_id);
+            if (getFatherByNFTId(_NFT_id) == 0) {
+                amount.add(_value);
+            } else {
+                uint256 _royalty_fee = calculateFee(_value, issues_by_id[getIssueIdByNFTId(_NFT_id)].royalty_fee);
+                amount.add(_value.sub(_royalty_fee));
+            }
+        }
+        return amount;
+    }
+    function getNFTIdByOwnerAddress(address _owner) public view returns (uint256[] memory) {
+        uint256 [] memory NFT_ids = new uint256[] (profit[_owner].size());
+        for (uint256 index = 0; index < profit[_owner].size(); index++) {
+            uint256 _NFT_id = profit[_owner].getKeyAtIndex(index);
+            NFT_ids[index] = _NFT_id;
+        }
+        return NFT_ids;
+    }
 }
