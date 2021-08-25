@@ -359,6 +359,7 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         new_NFT.father_id = 0;
         new_NFT.shillPrice = issues_by_id[_issue_id].first_sell_price;
         new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
+        
         _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
         _safeMint(msg.sender, new_NFT_id);
         return new_NFT_id;
@@ -376,18 +377,9 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         require(isEditionExist(_NFT_id), "ShillNFT: This NFT is not exist.");
         require(editions_by_id[_NFT_id].remain_shill_times > 0, "ShillNFT: There is no remain shill times for this NFT.");
         require(msg.value == editions_by_id[_NFT_id].shillPrice, "ShillNFT: not enought ETH");
-        uint256 grandFather = editions_by_id[_NFT_id].father_id;
-        if (grandFather == 0) {
-            profit[ownerOf(_NFT_id)].add(editions_by_id[_NFT_id].shillPrice);
-        }
-        else {
-            profit[ownerOf(_NFT_id)].add(
-                editions_by_id[_NFT_id].shillPrice-calculateFee(editions_by_id[_NFT_id].shillPrice, issues_by_id[getIssueIdByNFTId(_NFT_id)].royalty_fee));
-            profit[ownerOf(grandFather)].add(
-                calculateFee(editions_by_id[_NFT_id].shillPrice, issues_by_id[getIssueIdByNFTId(_NFT_id)].royalty_fee));
-        }
+        _AddProfit(ownerOf(_NFT_id), _NFT_id, editions_by_id[_NFT_id].shillPrice);
         uint256 new_NFT_id = _mintNFT(_NFT_id);
-
+        _initialOwnerMap(msg.sender);
         emit acceptShillSuccess (
             new_NFT_id,
             _NFT_id,
@@ -468,14 +460,8 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         require(_isApprovedOrOwner(_msgSender(), NFT_id), "ShillNFT: transfer caller is not owner nor approved");
         require(isEditionExist(NFT_id), "ShillNFT: Edition is not exist.");
         require(editions_by_id[NFT_id].is_on_sale, "ShillNFT: This NFT is not on sale.");
-        if (editions_by_id[NFT_id].father_id != 0){
-            uint256 royalty_amount = calculateFee(editions_by_id[NFT_id].transfer_price, issues_by_id[getIssueIdByNFTId(NFT_id)].royalty_fee);
-            require(msg.value == editions_by_id[NFT_id].transfer_price, "ShillNFT: not enought ETH");
-            profit[ownerOf(editions_by_id[NFT_id].father_id)].add(royalty_amount);
-            profit[ownerOf(NFT_id)].add(editions_by_id[NFT_id].transfer_price.sub(royalty_amount));
-        }
-        else 
-            profit[ownerOf(NFT_id)].add(editions_by_id[NFT_id].transfer_price);
+        require(msg.value == editions_by_id[NFT_id].transfer_price, "ShillNFT: not enought ETH");
+        _AddProfit(ownerOf(NFT_id), NFT_id, editions_by_id[NFT_id].transfer_price);
         _transfer(from, to, NFT_id);
         _afterTokenTransfer(NFT_id);
 
@@ -489,14 +475,8 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
         require(_isApprovedOrOwner(_msgSender(), NFT_id), "ShillNFT: transfer caller is not owner nor approved");
         require(isEditionExist(NFT_id), "ShillNFT: Edition is not exist.");
         require(editions_by_id[NFT_id].is_on_sale, "ShillNFT: This NFT is not on sale.");
-        if (editions_by_id[NFT_id].father_id != 0){
-            uint256 royalty_amount = calculateFee(editions_by_id[NFT_id].transfer_price, issues_by_id[getIssueIdByNFTId(NFT_id)].royalty_fee);
-            require(msg.value == editions_by_id[NFT_id].transfer_price, "ShillNFT: not enought ETH");
-            profit[ownerOf(editions_by_id[NFT_id].father_id)].add(royalty_amount);
-            profit[ownerOf(NFT_id)].add(editions_by_id[NFT_id].transfer_price.sub(royalty_amount));
-        }
-        else 
-            profit[ownerOf(NFT_id)].add(editions_by_id[NFT_id].transfer_price);
+        require(msg.value == editions_by_id[NFT_id].transfer_price, "ShillNFT: not enought ETH");
+        _AddProfit(ownerOf(NFT_id), NFT_id, editions_by_id[NFT_id].transfer_price);
         _safeTransfer(from, to, NFT_id, "");
         _afterTokenTransfer(NFT_id);
     }
@@ -706,8 +686,25 @@ contract ShillNFT is Context, ERC165, IERC721, IERC721Metadata{
     function _exists(uint256 tokenId) internal view returns (bool) {
         return _owners[tokenId] != address(0);
     }
-    function _isThisOwnerMapNeedInitial() internal view returns (bool) {
-        return true;
+    // 通过这种方式是否能够判定现在这个mapping下的子Imapping是否存在？
+    function _initialOwnerMap(address _owner) internal  {
+        if (profit[_owner].size() != 0) return;
+        IterableMapping.Map storage map = profit[_owner];
+    }
+
+    function _AddProfit(address _owner, uint256 _NFT_id, uint256 _increase) internal {
+        _initialOwnerMap(_owner);
+        uint256 value = profit[_owner].get(_NFT_id);
+        profit[_owner].set(_NFT_id, value.add(_increase));
+    }
+    function _SubProfit(address _owner, uint256 _NFT_id, uint256 _decrease) internal {
+        require(profit[_owner].size() != 0, "SHillNFT: This map has not been initial.");
+        uint256 value = profit[_owner].get(_NFT_id);
+        profit[_owner].set(_NFT_id, value.sub(_decrease));
+    }
+    function _getProfit(address _owner, uint256 _NFT_id) internal returns(uint256){
+        _initialOwnerMap(_owner);
+        return profit[_owner].get(_NFT_id);
     }
 
     function isIssueExist(uint128 _issue_id) public view returns (bool) {
