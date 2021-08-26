@@ -353,9 +353,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         new_NFT.father_id = 0;
         new_NFT.shillPrice = issues_by_id[_issue_id].first_sell_price;
         new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
-        
-        _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
         _safeMint(msg.sender, new_NFT_id);
+        _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
         emit Mint(
             new_NFT_id,
             0,
@@ -403,8 +402,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         new_NFT.shillPrice = editions_by_id[_NFT_id].shillPrice - calculateFee(editions_by_id[_NFT_id].shillPrice, loss_ratio);
         new_NFT.is_on_sale = false;
         new_NFT.profit = 0;
-        _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
         _safeMint(_owner, new_NFT_id);
+        _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
         emit Mint(
             new_NFT_id,
             _NFT_id,
