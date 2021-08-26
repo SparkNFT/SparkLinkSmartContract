@@ -1,4 +1,4 @@
-.PHONY: build test prepare
+.PHONY: build test prepare clean
 
 prepare:
 	yarn
@@ -8,3 +8,6 @@ build:
 
 test: build
 	yarn hardhat test
+
+clean:
+	yarn hardhat clean

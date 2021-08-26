@@ -55,23 +55,31 @@ describe("SparkNFT", function () {
   });
 
   context('acceptShill()', async () => {
-    it('should mint a NFT from an issue', async () => {
+    it('should mint a NFT from an issue', async (): Promise<void> => {
       const other = accounts[1];
+      const first_sell_price = BigNumber.from(100);
+
       await sparkNFT.publish(
-        BigNumber.from(100),
+        first_sell_price,
         BigNumber.from(30),
         BigNumber.from(10),
         "TestIssue",
         "IPFSHASH"
       );
       const publish_event = (await sparkNFT.queryFilter(sparkNFT.filters.Publish()))[0];
-      const rootNFTId = publish_event.args.rootNFTId;
-      await sparkNFT.connect(other).accepetShill(rootNFTId, {
-        value: BigNumber.from(100),
-      });
+      const root_nft_id = publish_event.args.rootNFTId;
+      expect(await sparkNFT.isEditionExist(root_nft_id)).to.eq(true);
+
+      await sparkNFT.connect(other).accepetShill(root_nft_id, { value: first_sell_price });
       const mint_event = (await sparkNFT.queryFilter(sparkNFT.filters.Mint(null, null, other.address)))[0];
 
       console.log(mint_event.args.NFT_id);
+    });
+  });
+
+  context('safeTransferFrom()', async () => {
+    it('should transfer an NFT from one to another', async () => {
+
     });
   });
 
