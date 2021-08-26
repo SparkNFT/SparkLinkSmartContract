@@ -63,6 +63,23 @@ describe("SparkNFT", function () {
     });
   });
 
+  context('determinePriceAndApprove()', async () => {
+    it('should determine a price and approve', async () => {
+      const owner = accounts[1];
+      const receiver = accounts[2];
+      const mint_event = await helper.accept_shill(sparkNFT, owner);
+      const nft_id = mint_event.args.NFT_id;
+      const transfer_price = BigNumber.from(100);
+      await sparkNFT
+        .connect(owner)
+        .determinePriceAndApprove(nft_id, transfer_price, receiver.address);
+
+      const event = (await sparkNFT.queryFilter(sparkNFT.filters.DeterminePriceAndApprove()))[0];
+      expect(event.args.transfer_price).to.eq(transfer_price);
+      expect(event.args.to).to.eq(receiver.address);
+    });
+  });
+
   context('safeTransferFrom()', async () => {
     it('should transfer an NFT from one to another', async () => {
       const mint_event = await helper.accept_shill(sparkNFT, accounts[1]);
@@ -71,7 +88,6 @@ describe("SparkNFT", function () {
       const nft_id = mint_event.args.NFT_id;
       const price = BigNumber.from(100);
 
-      // TODO: write test for this
       await sparkNFT.connect(owner).determinePriceAndApprove(nft_id, price, receiver.address);
 
       await sparkNFT.connect(owner)["safeTransferFrom(address,address,uint256)"](
