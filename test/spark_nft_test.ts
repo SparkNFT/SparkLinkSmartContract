@@ -4,6 +4,7 @@ import { ethers } from "hardhat";
 import { SparkNFT } from "../artifacts/typechain/SparkNFT";
 import { BigNumber } from "@ethersproject/bignumber";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import helper from "./helper";
 
 use(solidity);
 
@@ -27,16 +28,7 @@ describe("SparkNFT", function () {
 
   context('publish()', async () => {
     it('should publish an issue and emit event successfully', async () => {
-      await sparkNFT.publish(
-        BigNumber.from(100),
-        BigNumber.from(30),
-        BigNumber.from(10),
-        "TestIssue",
-        "IPFSHASH"
-      );
-      const filter = sparkNFT.filters.Publish();
-      const results = await sparkNFT.queryFilter(filter);
-      const event = results[0];
+      const event = await helper.publish(sparkNFT)
 
       expect(event.args.issue_id).to.eq(BigNumber.from(1));
       expect(event.args.publisher).to.hexEqual(owner.address);
@@ -59,28 +51,46 @@ describe("SparkNFT", function () {
       const other = accounts[1];
       const first_sell_price = BigNumber.from(100);
 
-      await sparkNFT.publish(
-        first_sell_price,
-        BigNumber.from(30),
-        BigNumber.from(10),
-        "TestIssue",
-        "IPFSHASH"
-      );
-      const publish_event = (await sparkNFT.queryFilter(sparkNFT.filters.Publish()))[0];
+      const publish_event = await helper.publish(sparkNFT, first_sell_price)
       const root_nft_id = publish_event.args.rootNFTId;
       expect(await sparkNFT.isEditionExist(root_nft_id)).to.eq(true);
 
-      await sparkNFT.connect(other).accepetShill(root_nft_id, { value: first_sell_price });
-      const mint_event = (await sparkNFT.queryFilter(sparkNFT.filters.Mint(null, null, other.address)))[0];
+      const mint_event = await helper.accept_shill(sparkNFT, other, root_nft_id)
 
-      console.log(mint_event.args.NFT_id);
+      expect(mint_event.args.father_id).to.eq(root_nft_id);
+      expect(mint_event.args.NFT_id).not.to.eq(root_nft_id);
+      expect(mint_event.args.owner).to.eq(other.address)
     });
   });
 
   context('safeTransferFrom()', async () => {
     it('should transfer an NFT from one to another', async () => {
+      const mint_event = await helper.accept_shill(sparkNFT, accounts[1]);
+      const owner = accounts[1];
+      const receiver = accounts[2];
+      const nft_id = mint_event.args.NFT_id;
+      const price = BigNumber.from(100);
 
+      // TODO: write test for this
+      await sparkNFT.connect(owner).determinePriceAndApprove(nft_id, price, receiver.address);
+
+      await sparkNFT.connect(owner)["safeTransferFrom(address,address,uint256)"](
+        owner.address,
+        receiver.address,
+        nft_id,
+        { value: price }
+      );
+
+      const transfer_event = (await sparkNFT.queryFilter(sparkNFT.filters.TransferWithPrice(
+        owner.address,
+        receiver.address,
+        nft_id
+      )))[0];
+
+      expect(transfer_event.args.from).to.eq(owner.address);
+      expect(transfer_event.args.to).to.eq(receiver.address);
+      expect(transfer_event.args.NFT_id).to.eq(nft_id);
+      expect(transfer_event.args.transfer_price).to.eq(BigNumber.from(0))
     });
   });
-
 });
