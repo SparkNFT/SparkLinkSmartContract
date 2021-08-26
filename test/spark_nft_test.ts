@@ -26,16 +26,29 @@ describe("SparkNFT", function () {
   });
 
   it('should publish an issue and emit event successfully', async () => {
-    const publish_tx = await sparkNFT.publish(BigNumber.from(100), BigNumber.from(30), BigNumber.from(10), "TestIssue", "IPFSHASH");
-    const receipt = await publish_tx.wait();
-    const event = receipt.events?.filter((ev) => { return ev.event == "Publish" })[0]!;
+    await sparkNFT.publish(
+      BigNumber.from(100),
+      BigNumber.from(30),
+      BigNumber.from(10),
+      "TestIssue",
+      "IPFSHASH"
+    );
+    const filter = sparkNFT.filters.Publish()
+    const results = await sparkNFT.queryFilter(filter)
+    const event = results[0]
 
-    // console.log(`Publish event: ${event.topics[0]}`);
-    // issue_id
-    expect(event.topics[1]).to.eq(BigNumber.from(1));
-    // publisher
-    expect(event.topics[2]).to.hexEqual(owner.address);
+    expect(event.args.issue_id).to.eq(BigNumber.from(1));
+    expect(event.args.publisher).to.hexEqual(owner.address);
+    // TODO: make this rootNFTId validation match the contract.
+    // expect(event.args.rootNFTId).to.eq(BigNumber.from(0));
 
-    // TODO: check event.data
+    // Issue data
+    expect(event.args.issueData.name).to.eq("TestIssue");
+    expect(event.args.issueData.issue_id).to.eq(BigNumber.from(1));
+    expect(event.args.issueData.total_amount).to.eq(BigNumber.from(1));
+    expect(event.args.issueData.shill_times).to.eq(BigNumber.from(10));
+    expect(event.args.issueData.royalty_fee).to.eq(30);
+    expect(event.args.issueData.ipfs_hash).to.eq('IPFSHASH')
+    expect(event.args.issueData.first_sell_price).to.eq(BigNumber.from(100))
   })
 });
