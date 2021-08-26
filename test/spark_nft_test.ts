@@ -65,8 +65,8 @@ describe("SparkNFT", function () {
         "IPFSHASH"
       );
       const publish_event = (await sparkNFT.queryFilter(sparkNFT.filters.Publish()))[0];
-      const issue_id = publish_event.args.issue_id;
-      await sparkNFT.connect(other).accepetShill(issue_id, {
+      const rootNFTId = publish_event.args.rootNFTId;
+      await sparkNFT.connect(other).accepetShill(rootNFTId, {
         value: BigNumber.from(100),
       });
       const mint_event = (await sparkNFT.queryFilter(sparkNFT.filters.Mint(null, null, other.address)))[0];

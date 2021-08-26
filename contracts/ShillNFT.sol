@@ -13,10 +13,11 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import "hardhat/console.sol";
+
 contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     using Address for address;
     using Counters for Counters.Counter;
-    using SafeMath for uint256;
     Counters.Counter private _issueIds;
     // 由于时间关系先写中文注释
     // Issue 用于存储一系列的NFT，他们对应同一个URI，以及一系列相同的属性，在结构体中存储
@@ -344,8 +345,12 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     function _initialRootEdition(uint128 _issue_id) internal returns (uint256) {
         issues_by_id[_issue_id].total_amount += 1;
         uint128 new_edition_id = issues_by_id[_issue_id].total_amount;
+        console.log("new_NFT_id: ", getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id));
+        console.log("issue_id: ", _issue_id);
+        console.log("new_edition_id: ", new_edition_id);
+
         uint256 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
-        Edition storage new_NFT = editions_by_id[new_edition_id];
+        Edition storage new_NFT = editions_by_id[new_NFT_id];
         new_NFT.NFT_id = new_NFT_id;
         new_NFT.transfer_price = 0;
         new_NFT.profit = 0;
@@ -376,6 +381,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         require(isEditionExist(_NFT_id), "SparkNFT: This NFT is not exist.");
         require(editions_by_id[_NFT_id].remain_shill_times > 0, "SparkNFT: There is no remain shill times for this NFT.");
         require(msg.value == editions_by_id[_NFT_id].shillPrice, "SparkNFT: not enought ETH");
+
+        //console.log("issue_id: ",getIssueIdByNFTId( _NFT_id));
         _addProfit( _NFT_id, editions_by_id[_NFT_id].shillPrice);
         _mintNFT(_NFT_id, msg.sender);
         editions_by_id[_NFT_id].remain_shill_times -= 1;
@@ -394,7 +401,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         require(issues_by_id[_issue_id].total_amount < max_128, "SparkNFT: There is no left in this issue.");
         uint128 new_edition_id = issues_by_id[_issue_id].total_amount;
         uint256 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
-        Edition storage new_NFT = editions_by_id[new_edition_id];
+        Edition storage new_NFT = editions_by_id[new_NFT_id];
         new_NFT.NFT_id = new_NFT_id;
         new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
         new_NFT.transfer_price = 0;
@@ -528,7 +535,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         if (getFatherByNFTId(_NFT_id) != 0) {
             uint256 _royalty_fee = calculateFee(editions_by_id[_NFT_id].profit, issues_by_id[getIssueIdByNFTId(_NFT_id)].royalty_fee);
             _addProfit( getFatherByNFTId(_NFT_id), _royalty_fee);
-            amount.sub(_royalty_fee);
+            amount -= _royalty_fee;
         }
         payable(ownerOf(_NFT_id)).transfer(amount);
         emit Claim(
@@ -683,9 +690,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      */
 
     function calculateFee(uint256 _amount, uint8 _fee_percent) internal pure returns (uint256) {
-        return _amount.mul(_fee_percent).div(
-            10**2
-        );
+        return _amount*_fee_percent/10**2;
     }
     function getNftIdByEditionIdAndIssueId(uint128 _issue_id, uint128 _edition_id) internal pure returns (uint256) {
         return (uint256(_issue_id)<<128)|uint256(_edition_id);
@@ -701,10 +706,10 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         return loss_ratio;
     }
     function _addProfit(uint256 _NFT_id, uint256 _increase) internal {
-        editions_by_id[_NFT_id].profit = editions_by_id[_NFT_id].profit.add(_increase);
+        editions_by_id[_NFT_id].profit = editions_by_id[_NFT_id].profit- _increase;
     }
     function _subProfit(uint256 _NFT_id, uint256 _decrease) internal {
-        editions_by_id[_NFT_id].profit = editions_by_id[_NFT_id].profit.sub(_decrease);
+        editions_by_id[_NFT_id].profit = editions_by_id[_NFT_id].profit-_decrease;
     }
 
     function isIssueExist(uint128 _issue_id) public view returns (bool) {
