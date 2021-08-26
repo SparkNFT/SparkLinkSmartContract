@@ -15,7 +15,7 @@ describe("SparkNFT", function () {
     accounts = await ethers.getSigners();
   })
 
-  it("Should return the new greeting once it's changed", async function () {
+  it("Should return the new greeting once it's changed", async () => {
     expect(await sparkNFT.name()).to.equal("SparkNFT");
     expect(await sparkNFT.symbol()).to.equal("SparkNFT");
   });
@@ -25,10 +25,11 @@ describe("SparkNFT", function () {
     const receipt = await publish_tx.wait();
     const event = receipt.events?.filter((ev) => { return ev.event == "Publish" })[0]!;
 
-    console.log(event.topics);
     // issue_id
     expect(event.topics[1]).to.eq(BigNumber.from(1));
     // publisher
-    expect(ethers.utils.hexStripZeros(event.topics[2])).to.eq(accounts[0].address.toLowerCase());
+    expect(event.topics[2]).to.hexEqual(accounts[0].address);
+
+    // TODO: check event.data
   })
 });

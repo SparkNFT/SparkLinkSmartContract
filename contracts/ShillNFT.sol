@@ -86,7 +86,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     );
     // 除上述变量外，该事件还返回根节点的NFTId
     event Publish(
-	    uint128 indexed issue_id,
+	uint128 indexed issue_id,
         address indexed publisher,
         uint256 rootNFTId,
         Issue issueData
@@ -273,7 +273,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * @dev Determine NFT price before transfer.
      *
      * Requirements:
-     * 
+     *
      * - `_NFT_id` transferred token id.
      * - `_token_addr` address of the token this transcation used, address(0) represent ETH.
      * - `_price` The amount of `_token_addr` should be payed for `_NFT_id`
@@ -286,7 +286,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      // ？ 这个地方有个问题，按照这篇文章https://gus-tavo-guim.medium.com/public-vs-external-functions-in-solidity-b46bcf0ba3ac
      // 在external函数之中使用calldata进行传参数的gas消耗应该会更少一点
      // 但是大部分地方能看到的都是memory
-     
+
     // publish函数分为这样几个部分
     // 首先检验传入的参数是否正确，是否出现了不符合逻辑的上溢现象
     // 然后获取issueid
@@ -308,11 +308,11 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         require((_issueIds.current()) <= max_128, "SparkNFT: Issue id doesn't fit in 128 bits");
         uint128 new_issue_id = uint128(_issueIds.current());
         _publish(
-            _issue_name, 
+            _issue_name,
             new_issue_id,
-            _shill_times, 
-            _royalty_fee, 
-            _first_sell_price, 
+            _shill_times,
+            _royalty_fee,
+            _first_sell_price,
             _ipfs_hash
         );
         uint256 rootNFTId =  _initialRootEdition(new_issue_id);
@@ -417,7 +417,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * @dev Determine NFT price before transfer.
      *
      * Requirements:
-     * 
+     *
      * - `_NFT_id` transferred token id.
      * - `_token_addr` address of the token this transcation used, address(0) represent ETH.
      * - `_price` The amount of `_token_addr` should be payed for `_NFT_id`
@@ -455,8 +455,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     }
     // 加入一个owner调取transfer不需要check是否onsale
     function transferFrom(
-        address from, 
-        address to, 
+        address from,
+        address to,
         uint256 NFT_id
     ) public payable override{
         require(_isApprovedOrOwner(_msgSender(), NFT_id), "SparkNFT: transfer caller is not owner nor approved");
@@ -672,7 +672,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         } else {
             return true;
         }
-    } 
+    }
     /**
      * @dev Returns whether `tokenId` exists.
      *
