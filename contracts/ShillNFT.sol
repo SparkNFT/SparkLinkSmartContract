@@ -99,7 +99,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         address indexed owner,
         Edition editionData
     );
-    event Transfer(
+    event TransferWithPrice(
         address indexed from,
         address indexed to,
         uint256 indexed NFT_id,
@@ -481,7 +481,12 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         claimProfit(NFT_id);
         _transfer(from, to, NFT_id);
         _afterTokenTransfer(NFT_id);
-
+        emit TransferWithPrice(
+            from,
+            to,
+            NFT_id,
+            editions_by_id[NFT_id].transfer_price
+        );
     }
 
     function safeTransferFrom(
@@ -497,6 +502,12 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         claimProfit(NFT_id);
         _safeTransfer(from, to, NFT_id, "");
         _afterTokenTransfer(NFT_id);
+        emit TransferWithPrice(
+            from,
+            to,
+            NFT_id,
+            editions_by_id[NFT_id].transfer_price
+        );
     }
 
     function safeTransferFrom(
