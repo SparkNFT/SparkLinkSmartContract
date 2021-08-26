@@ -459,6 +459,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     ) public {
         determinePrice(_NFT_id, _price);
         approve(_to, _NFT_id);
+        emit DeterminePriceAndApprove(_NFT_id, _price, _to);
     }
     // 将flag在转移后重新设置
     function _afterTokenTransfer (
