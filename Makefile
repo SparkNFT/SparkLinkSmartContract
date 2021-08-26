@@ -1,4 +1,4 @@
-.PHONY: build test
+.PHONY: build test prepare
 
 prepare:
 	yarn
@@ -6,5 +6,5 @@ prepare:
 build:
 	yarn hardhat compile
 
-test:
+test: build
 	yarn hardhat test
