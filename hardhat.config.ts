@@ -1,4 +1,6 @@
 import { task } from "hardhat/config";
+import '@typechain/hardhat'
+import '@nomiclabs/hardhat-ethers'
 import "@nomiclabs/hardhat-waffle";
 
 // This is a sample Hardhat task. To learn how to create your own go to
@@ -18,5 +20,9 @@ task("accounts", "Prints the list of accounts", async (_args, hre) => {
  * @type import('hardhat/config').HardhatUserConfig
  */
 export default {
-  solidity: "0.8.0",
+    solidity: "0.8.0",
+    typechain: {
+        outDir: 'artifacts/typechain',
+        target: 'ethers-v5',
+    }
 };

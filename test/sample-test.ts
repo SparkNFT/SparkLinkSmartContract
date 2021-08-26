@@ -1,19 +1,14 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { SparkNFT } from "../artifacts/typechain/SparkNFT"
 
-describe("Greeter", function () {
+describe("SparkNFT", function () {
   it("Should return the new greeting once it's changed", async function () {
-    const Greeter = await ethers.getContractFactory("Greeter");
-    const greeter = await Greeter.deploy("Hello, world!");
-    await greeter.deployed();
+    const SparkNFTFactory = await ethers.getContractFactory("SparkNFT");
+    const sparkNFT = (await SparkNFTFactory.deploy()) as SparkNFT;
+    await sparkNFT.deployed();
 
-    expect(await greeter.greet()).to.equal("Hello, world!");
-
-    const setGreetingTx = await greeter.setGreeting("Hola, mundo!");
-
-    // wait until the transaction is mined
-    await setGreetingTx.wait();
-
-    expect(await greeter.greet()).to.equal("Hola, mundo!");
+    expect(await sparkNFT.name()).to.equal("SparkNFT");
+    expect(await sparkNFT.symbol()).to.equal("SparkNFT");
   });
 });
