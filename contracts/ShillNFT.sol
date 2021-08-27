@@ -183,7 +183,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     /**
      * @dev See {IERC721-approve}.
      */
-    function approve(address to, uint256 tokenId) public payable virtual override {
+    function approve(address to, uint256 tokenId) public virtual override {
         address owner = ownerOf(tokenId);
         require(to != owner, "SparkNFT: approval to current owner");
 
@@ -480,6 +480,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
             require(editions_by_id[NFT_id].is_on_sale, "SparkNFT: This NFT is not on sale.");
             require(msg.value == editions_by_id[NFT_id].transfer_price, "SparkNFT: not enought ETH");
             _addProfit(NFT_id, editions_by_id[NFT_id].transfer_price);
+            claimProfit(NFT_id);
+            _transfer(from, to, NFT_id);
             _afterTokenTransfer(NFT_id);
             emit TransferWithPrice(
                 from,
@@ -488,8 +490,10 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
                 editions_by_id[NFT_id].transfer_price
             );
         }
-        claimProfit(NFT_id);
-        _transfer(from, to, NFT_id);
+        else {
+            claimProfit(NFT_id);
+            _transfer(from, to, NFT_id);
+        }
     }
 
     function safeTransferFrom(
@@ -503,6 +507,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
             require(editions_by_id[NFT_id].is_on_sale, "SparkNFT: This NFT is not on sale.");
             require(msg.value == editions_by_id[NFT_id].transfer_price, "SparkNFT: not enought ETH");
             _addProfit(NFT_id, editions_by_id[NFT_id].transfer_price);
+            claimProfit(NFT_id);
+            _safeTransfer(from, to, NFT_id, "");
             _afterTokenTransfer(NFT_id);
             emit TransferWithPrice(
                 from,
@@ -511,8 +517,10 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
                 editions_by_id[NFT_id].transfer_price
             );
         }
-        claimProfit(NFT_id);
-        _safeTransfer(from, to, NFT_id, "");
+        else{
+            claimProfit(NFT_id);
+            _safeTransfer(from, to, NFT_id, "");
+        }
     }
 
     function safeTransferFrom(
@@ -552,7 +560,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         emit Transfer(from, to, tokenId);
     }
     function claimProfit(uint256 _NFT_id) public {
-        require(editions_by_id[_NFT_id].profit > 0, "SparkNFT: There is no profit to be claimed.");
         uint256 amount = editions_by_id[_NFT_id].profit;
         editions_by_id[_NFT_id].profit = 0;
         if (getFatherByNFTId(_NFT_id) != 0) {

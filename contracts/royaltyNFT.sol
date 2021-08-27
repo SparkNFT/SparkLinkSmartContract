@@ -172,7 +172,7 @@ contract royaltyNFT is Context, ERC165, IERC721, IERC721Metadata{
     /**
      * @dev See {IERC721-approve}.
      */
-    function approve(address to, uint256 tokenId) public payable virtual override {
+    function approve(address to, uint256 tokenId) public virtual override {
         address owner = ownerOf(tokenId);
         require(to != owner, "ERC721: approval to current owner");
 
