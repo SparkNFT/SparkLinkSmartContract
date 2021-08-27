@@ -2,6 +2,7 @@
 
 prepare:
 	yarn
+	if [ ! -f chain.ts ]; then cp chain.sample.ts chain.ts; fi;
 
 build:
 	yarn hardhat compile
