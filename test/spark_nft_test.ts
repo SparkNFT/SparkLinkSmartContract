@@ -97,7 +97,7 @@ describe("SparkNFT", function () {
         { value: price }
       );
 
-      const transfer_event = (await sparkNFT.queryFilter(sparkNFT.filters.TransferWithPrice(
+      const transfer_event = (await sparkNFT.queryFilter(sparkNFT.filters.Transfer(
         owner.address,
         receiver.address,
         nft_id
@@ -105,8 +105,7 @@ describe("SparkNFT", function () {
 
       expect(transfer_event.args.from).to.eq(owner.address);
       expect(transfer_event.args.to).to.eq(receiver.address);
-      expect(transfer_event.args.NFT_id).to.eq(nft_id);
-      expect(transfer_event.args.transfer_price).to.eq(BigNumber.from(0))
+      expect(transfer_event.args.tokenId).to.eq(nft_id);
     });
   });
 });
