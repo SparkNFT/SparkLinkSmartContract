@@ -560,6 +560,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         emit Transfer(from, to, tokenId);
     }
     function claimProfit(uint256 _NFT_id) public {
+        require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
         uint256 amount = editions_by_id[_NFT_id].profit;
         editions_by_id[_NFT_id].profit = 0;
         if (getFatherByNFTId(_NFT_id) != 0) {
