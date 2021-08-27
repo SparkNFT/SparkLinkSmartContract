@@ -343,12 +343,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     }
 
     function _initialRootEdition(uint128 _issue_id) internal returns (uint256) {
-        // console.log("issues_by_id[_issue_id].shill_times",issues_by_id[_issue_id].shill_times);
         issues_by_id[_issue_id].total_amount += 1;
         uint128 new_edition_id = issues_by_id[_issue_id].total_amount;
-        // console.log("new_NFT_id: ", getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id));
-        // console.log("issue_id: ", _issue_id);
-        // console.log("new_edition_id: ", new_edition_id);
 
         uint256 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
         Edition storage new_NFT = editions_by_id[new_NFT_id];
@@ -359,7 +355,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         new_NFT.father_id = 0;
         new_NFT.shillPrice = issues_by_id[_issue_id].first_sell_price;
         new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
-        // console.log("new_NFT.remain_shill_times", new_NFT.remain_shill_times);
         _safeMint(msg.sender, new_NFT_id);
         _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
         emit Mint(
@@ -383,14 +378,9 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         require(isEditionExist(_NFT_id), "SparkNFT: This NFT is not exist.");
         require(editions_by_id[_NFT_id].remain_shill_times > 0, "SparkNFT: There is no remain shill times for this NFT.");
         require(msg.value == editions_by_id[_NFT_id].shillPrice, "SparkNFT: not enought ETH");
-        console.log("wo shi SB");
-
-        //console.log("issue_id: ",getIssueIdByNFTId( _NFT_id));
         _addProfit( _NFT_id, editions_by_id[_NFT_id].shillPrice);
         _mintNFT(_NFT_id, msg.sender);
-        console.log("editions_by_id[_NFT_id].remain_shill_times",editions_by_id[_NFT_id].remain_shill_times);
         editions_by_id[_NFT_id].remain_shill_times -= 1;
-        console.log("editions_by_id[_NFT_id].remain_shill_times",editions_by_id[_NFT_id].remain_shill_times);
         if (editions_by_id[_NFT_id].remain_shill_times == 0) {
             _mintNFT(_NFT_id, ownerOf(_NFT_id));
         }
@@ -400,11 +390,9 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         uint256 _NFT_id,
         address _owner
     ) internal returns (uint256) {
-        console.log("wo shi SB");
         uint128 max_128 = type(uint128).max;
         uint128 _issue_id = getIssueIdByNFTId(_NFT_id);
         issues_by_id[_issue_id].total_amount += 1;
-        console.log("wo shi SB");
         require(issues_by_id[_issue_id].total_amount < max_128, "SparkNFT: There is no left in this issue.");
         uint128 new_edition_id = issues_by_id[_issue_id].total_amount;
         uint256 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
