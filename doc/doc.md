@@ -101,3 +101,8 @@ edition如何编号？
 
 claim不再限制只有owner可以调取，而是只transfer给owner，在transfer函数中自动进行claim再transfer。
 已经加入了上述的生长子节点的设定。
+
+
+将safemath取消，因为好像0.8后版本自带safemath
+
+随后可以加入issue与issue之间的关系，考虑二次创作，翻译等等的因素。
