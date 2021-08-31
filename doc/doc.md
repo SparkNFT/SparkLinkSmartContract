@@ -127,3 +127,15 @@ is_on_sale是否是必要的？
 新加入需求，ERC20支持，扣去一定数量的MASK，允许用户创建新的合约，流通ERC20token
 
 新加入需求，boardcast，即不再收取费用，而是将奖励打入奖金池。
+
+
+新加入优化，determine price的部分可以做修改，首先删去is_on_sale flag使得用户在opensea上的交易更加顺滑，判断一下有没有这个必要。
+其次可以将transfer的方法取消掉强制check，另外封装出来一个方法，里面用签名的方式从传入计价金额，中心化的存储或者分发，这样的话增强用户对平台的依赖性，取消掉determineprice的系列方法解耦transfer和二级市场买卖。
+
+新加入andy的优化建议：
+Hi， 我还在看代码，一点想法:
+- transferFrom 和 safeTransferFrom 有不少代码是重复的，这部分我觉得可以改善一下
+- 这份文件里不少函数是可以继承ERC721来的，例如： _mint， 我觉得可以改善一下（父类的函数保持不动），solidity是面向对象的语言。
+- 可以lint一下solidity code
+- _issueIds 有好几次类型转换，这种情况，我觉得可以直接用256 bit的ID，免去检查和类型转换
+- _shill_times 类型是uint64, 就没必要再检查_shill_times <= max_64了
