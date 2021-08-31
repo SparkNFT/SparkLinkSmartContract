@@ -241,30 +241,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     }
 
     /**
-     * @dev Destroys `tokenId`.
-     * The approval is cleared when the token is burned.
-     *
-     * Requirements:
-     *
-     * - `tokenId` must exist.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _burn(uint256 tokenId) internal {
-        address owner = ownerOf(tokenId);
-        // Clear approvals
-        _approve(address(0), tokenId);
-
-        _balances[owner] -= 1;
-        delete _owners[tokenId];
-
-        if (bytes(_tokenURIs[tokenId]).length != 0) {
-            delete _tokenURIs[tokenId];
-        }
-
-        emit Transfer(owner, address(0), tokenId);
-    }
-    /**
      * @dev Determine NFT price before transfer.
      *
      * Requirements:
