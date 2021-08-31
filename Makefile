@@ -12,3 +12,6 @@ test: build
 
 clean:
 	yarn hardhat clean
+
+check:
+	yarn hardhat check
