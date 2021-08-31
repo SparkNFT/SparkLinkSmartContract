@@ -37,9 +37,9 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         // Publisher of this series NFTs
         uint64 shill_times;
         uint128 total_amount;
-        string ipfs_hash;
+        // 删掉
         // Metadata json file.
-        string name;
+        // 删掉
         // issue's name
         // List of tokens(address) can be accepted for payment.
         // And specify the min fee should be toke when series of NFTs are sold.
@@ -69,6 +69,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         bool is_on_sale;
         uint64 remain_shill_times;
         address owner;
+        bytes32 ipfs_hash;
         // royalty_fee for every transfer expect from or to exclude address, max is 100;
     }
     // 分别存储issue与editions
@@ -90,15 +91,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     event Publish(
 	uint128 indexed issue_id,
         address indexed publisher,
-        uint256 rootNFTId,
-        Issue issueData
-    );
-    // 子节点mint成功，加入了购买者和NFT_id的关系，可以配合transfer的log一起过滤获取某人的所有NFT_id
-    event Mint (
-        uint256 indexed NFT_id,
-        uint256 indexed father_id,
-        address indexed owner,
-        Edition editionData
+        uint256 rootNFTId
     );
     // 获取自己的收益成功
     event Claim(
@@ -123,7 +116,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     mapping(address => mapping(address => bool)) private _operatorApprovals;
 
     // Optional mapping for token URIs
-    mapping(uint256 => string) private _tokenURIs;
     //----------------------------------------------------------------------------------------------------
     /**
      * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
@@ -220,9 +212,9 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
         require(isEditionExist(tokenId), "SparkNFT: URI query for nonexistent token");
 
-        string memory _tokenURI = _tokenURIs[tokenId];
+        bytes32  _ipfs_hash = editions_by_id[tokenId].ipfs_hash;
         string memory base = _baseURI();
-        return string(abi.encodePacked(base, _tokenURI));
+        return string(abi.encodePacked(base, _ipfs_hash));
         
     }
 
@@ -234,9 +226,9 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * - `tokenId` must exist.
      */
     // 这个函数保留，可能用于二次创作来修改URI
-    function _setTokenURI(uint256 tokenId, string memory _tokenURI) internal virtual {
+    function _setTokenURI(uint256 tokenId, bytes32 ipfs_hash) internal virtual {
         require(isEditionExist(tokenId), "SparkNFT: URI set of nonexistent token");
-        _tokenURIs[tokenId] = _tokenURI;
+        editions_by_id[tokenId].ipfs_hash = ipfs_hash;
     }
 
     /**
@@ -267,48 +259,26 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         uint256 _first_sell_price,
         uint8 _royalty_fee,
         uint64 _shill_times,
-        string memory _issue_name,
-        string memory _ipfs_hash
+        bytes32 _ipfs_hash
     ) external {
         require(_royalty_fee <= 100, "SparkNFT: Royalty fee should less than 100.");
         _issueIds.increment();
         uint128 max_128 = type(uint128).max;
         require((_issueIds.current()) <= max_128, "SparkNFT: Issue id doesn't fit in 128 bits");
         uint128 new_issue_id = uint128(_issueIds.current());
-        _publish(
-            _issue_name,
-            new_issue_id,
-            _shill_times,
-            _royalty_fee,
-            _first_sell_price,
-            _ipfs_hash
-        );
-        uint256 rootNFTId =  _initialRootEdition(new_issue_id);
-        emit Publish(
-            issues_by_id[new_issue_id].issue_id,
-            msg.sender,
-            rootNFTId,
-            issues_by_id[new_issue_id]
-        );
-    }
-    function _publish(
-        string memory _issue_name,
-        uint128 new_issue_id,
-        uint64 _shill_times,
-        uint8 _royalty_fee,
-        uint256 _first_sell_price,
-        string memory _ipfs_hash
-    ) internal {
         Issue storage new_issue = issues_by_id[new_issue_id];
-        new_issue.name = _issue_name;
         new_issue.issue_id = new_issue_id;
         new_issue.royalty_fee = _royalty_fee;
         new_issue.shill_times = _shill_times;
-        new_issue.total_amount = 0;
-        new_issue.ipfs_hash = _ipfs_hash;
         new_issue.first_sell_price = _first_sell_price;
+        uint256 rootNFTId =  _initialRootEdition(new_issue_id, _ipfs_hash);
+        emit Publish(
+            new_issue_id,
+            msg.sender,
+            rootNFTId
+        );
     }
-    function _initialRootEdition(uint128 _issue_id) internal returns (uint256) {
+    function _initialRootEdition(uint128 _issue_id, bytes32 ipfs_hash) internal returns (uint256) {
         issues_by_id[_issue_id].total_amount += 1;
         uint128 new_edition_id = issues_by_id[_issue_id].total_amount;
         uint256 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
@@ -320,20 +290,10 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         Edition storage new_NFT = editions_by_id[new_NFT_id];
         new_NFT.NFT_id = new_NFT_id;
         new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
-        new_NFT.transfer_price = 0;
-        new_NFT.is_on_sale = false;
-        new_NFT.father_id = 0;
-        new_NFT.profit = 0;
         new_NFT.shillPrice = issues_by_id[_issue_id].first_sell_price;
         new_NFT.owner = msg.sender;
+        new_NFT.ipfs_hash = ipfs_hash;
         _balances[msg.sender] += 1;
-        _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
-        emit Mint(
-            new_NFT_id,
-            0,
-            msg.sender,
-            new_NFT
-        );
         emit Transfer(address(0), msg.sender, new_NFT_id);
         return new_NFT_id;
     }
@@ -376,20 +336,11 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         Edition storage new_NFT = editions_by_id[new_NFT_id];
         new_NFT.NFT_id = new_NFT_id;
         new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
-        new_NFT.transfer_price = 0;
-        new_NFT.is_on_sale = false;
         new_NFT.father_id = _NFT_id;
         new_NFT.shillPrice = editions_by_id[_NFT_id].shillPrice - calculateFee(editions_by_id[_NFT_id].shillPrice, loss_ratio);
-        new_NFT.profit = 0;
         new_NFT.owner = _owner;
+        new_NFT.ipfs_hash = editions_by_id[_NFT_id].ipfs_hash;
         _balances[_owner] += 1;
-        _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
-        emit Mint(
-            new_NFT_id,
-            _NFT_id,
-            _owner,
-            new_NFT
-        );
         emit Transfer(address(0), _owner, new_NFT_id);
         return new_NFT_id;
     }
@@ -635,15 +586,10 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     function getIssueIdByNFTId(uint256 _NFT_id) public pure returns (uint128) {
         return uint128(_NFT_id >> 128);
     }
-
-    function getIssueNameByIssueId(uint128 _issue_id) public view returns (string memory) {
-        require(isIssueExist(_issue_id), "SparkNFT: This issue is not exist.");
-        return issues_by_id[_issue_id].name;
-    }
-    function getIpfsHashByIssueId(uint128 _issue_id) public view returns (string memory) {
-        require(isIssueExist(_issue_id), "SparkNFT: This issue is not exist.");
-        return issues_by_id[_issue_id].ipfs_hash;
-    }
+    // function getIpfsHashByIssueId(uint128 _issue_id) public view returns (string memory) {
+    //     require(isIssueExist(_issue_id), "SparkNFT: This issue is not exist.");
+    //     return issues_by_id[_issue_id].ipfs_hash;
+    // }
     function getRoyaltyFeeByIssueId(uint128 _issue_id) public view returns (uint8) {
         require(isIssueExist(_issue_id), "SparkNFT: This issue is not exist.");
         return issues_by_id[_issue_id].royalty_fee;

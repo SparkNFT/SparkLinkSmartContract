@@ -1,3 +1,4 @@
+import { ethers } from "hardhat";
 import { BigNumber } from "@ethersproject/bignumber";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { SparkNFT } from "../artifacts/typechain/SparkNFT";
@@ -11,14 +12,12 @@ export default {
     first_sell_price = BigNumber.from(100),
     royalty_fee = BigNumber.from(30),
     shill_times = BigNumber.from(10),
-    issue_name = "TestIssue",
-    ipfs_hash = "IPFSHASH",
+    ipfs_hash = Buffer.from('1234567890123456789012345678901234567890123456789012345678901234', 'hex'),
   ) {
     await contract.publish(
       first_sell_price,
       royalty_fee,
       shill_times,
-      issue_name,
       ipfs_hash,
     );
     const publish_event = (await contract.queryFilter(contract.filters.Publish()))[0];
@@ -35,7 +34,7 @@ export default {
     }
 
     await contract.connect(other_account).accepetShill(root_nft_id, { value: BigNumber.from(100) })
-    const mint_event = (await contract.queryFilter(contract.filters.Mint(null, null, other_account.address)))[0];
-    return mint_event;
+    const transfer_event = (await contract.queryFilter(contract.filters.Transfer(ethers.constants.AddressZero, other_account.address, null)))[0];
+    return transfer_event;
   }
 }
