@@ -235,6 +235,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      *
      * - `tokenId` must exist.
      */
+    // 这个函数保留，可能用于二次创作来修改URI
     function _setTokenURI(uint256 tokenId, string memory _tokenURI) internal virtual {
         require(_exists(tokenId), "SparkNFT: URI set of nonexistent token");
         _tokenURIs[tokenId] = _tokenURI;
@@ -274,8 +275,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         require(_royalty_fee <= 100, "SparkNFT: Royalty fee should less than 100.");
         _issueIds.increment();
         uint128 max_128 = type(uint128).max;
-        uint64 max_64 = type(uint64).max;
-        require(_shill_times <= max_64, "SparkNFT: Shill_times doesn't fit in 64 bits");
         require((_issueIds.current()) <= max_128, "SparkNFT: Issue id doesn't fit in 128 bits");
         uint128 new_issue_id = uint128(_issueIds.current());
         _publish(
@@ -433,7 +432,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         address from,
         address to,
         uint256 NFT_id
-    ) public payable override{
+    ) external payable override{
         _transfer(from, to, NFT_id);
     }
 
@@ -441,7 +440,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         address from,
         address to,
         uint256 NFT_id
-    ) public payable override{
+    ) external payable override{
        _safeTransfer(from, to, NFT_id, "");
     }
 
@@ -450,8 +449,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         address to,
         uint256 NFT_id,
         bytes calldata _data
-    ) public payable override {
-        safeTransferFrom(from, to, NFT_id);
+    ) external payable override {
+        _safeTransfer(from, to, NFT_id, _data);
     }
     /**
      * @dev Transfers `tokenId` from `from` to `to`.
@@ -490,19 +489,21 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     }
     function claimProfit(uint256 _NFT_id) public {
         require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
-        uint256 amount = editions_by_id[_NFT_id].profit;
-        editions_by_id[_NFT_id].profit = 0;
-        if (getFatherByNFTId(_NFT_id) != 0) {
-            uint256 _royalty_fee = calculateFee(editions_by_id[_NFT_id].profit, issues_by_id[getIssueIdByNFTId(_NFT_id)].royalty_fee);
-            _addProfit( getFatherByNFTId(_NFT_id), _royalty_fee);
-            amount -= _royalty_fee;
+        if (editions_by_id[_NFT_id].profit != 0) {
+            uint256 amount = editions_by_id[_NFT_id].profit;
+            editions_by_id[_NFT_id].profit = 0;
+            if (getFatherByNFTId(_NFT_id) != 0) {
+                uint256 _royalty_fee = calculateFee(editions_by_id[_NFT_id].profit, issues_by_id[getIssueIdByNFTId(_NFT_id)].royalty_fee);
+                _addProfit( getFatherByNFTId(_NFT_id), _royalty_fee);
+                amount -= _royalty_fee;
+            }
+            payable(ownerOf(_NFT_id)).transfer(amount);
+            emit Claim(
+                _NFT_id,
+                ownerOf(_NFT_id),
+                amount
+            );
         }
-        payable(ownerOf(_NFT_id)).transfer(amount);
-        emit Claim(
-            _NFT_id,
-            ownerOf(_NFT_id),
-            amount
-        );
     }
      /**
      * @dev Safely transfers `tokenId` token from `from` to `to`, checking first that contract recipients
