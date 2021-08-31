@@ -75,7 +75,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     // 分别存储issue与editions
     mapping (uint256 => Issue) private issues_by_id;
     mapping (uint256 => Edition) private editions_by_id;
-    // 去他妈的俄罗斯套娃mapping
     // 确定价格成功后的事件
     event DeterminePrice(
         uint256 indexed NFT_id,
@@ -245,9 +244,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * - `_token_addr` address of the token this transcation used, address(0) represent ETH.
      * - `_price` The amount of `_token_addr` should be payed for `_NFT_id`
      */
-     // ？ 这个地方有个问题，按照这篇文章https://gus-tavo-guim.medium.com/public-vs-external-functions-in-solidity-b46bcf0ba3ac
-     // 在external函数之中使用calldata进行传参数的gas消耗应该会更少一点
-     // 但是大部分地方能看到的都是memory
 
     // publish函数分为这样几个部分
     // 首先检验传入的参数是否正确，是否出现了不符合逻辑的上溢现象
@@ -350,11 +346,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      *
      * Requirements:
      *
-     * - `_NFT_id` transferred token id.
-     * - `_token_addr` address of the token this transcation used, address(0) represent ETH.
-     * - `_price` The amount of `_token_addr` should be payed for `_NFT_id`
-     *
-     * Emits a {DeterminePrice} event, which contains:
      * - `_NFT_id` transferred token id.
      * - `_token_addr` address of the token this transcation used, address(0) represent ETH.
      * - `_price` The amount of `_token_addr` should be payed for `_NFT_id`
