@@ -99,12 +99,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         address indexed owner,
         Edition editionData
     );
-    event TransferWithPrice(
-        address indexed from,
-        address indexed to,
-        uint256 indexed NFT_id,
-        uint256 transfer_price
-    );
     // 获取自己的收益成功
     event Claim(
         uint256 indexed NFT_id,
