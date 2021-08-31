@@ -304,7 +304,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     // 如果是根节点就不进行手续费扣款
     // 接下来mintNFT
     // 最后触发事件
-    function accepetShill(
+    function accepteShill(
         uint256 _NFT_id
     ) public payable {
         require(isEditionExist(_NFT_id), "SparkNFT: This NFT is not exist.");
