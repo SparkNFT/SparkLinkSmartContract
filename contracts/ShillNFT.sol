@@ -68,6 +68,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         // The price of the NFT in the transaction is determined before the transaction.
         bool is_on_sale;
         uint64 remain_shill_times;
+        address owner;
         // royalty_fee for every transfer expect from or to exclude address, max is 100;
     }
     // 分别存储issue与editions
@@ -111,8 +112,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     // Token symbol
     string private _symbol;
     uint8 constant loss_ratio = 90;
-    // Mapping from token ID to owner address
-    mapping(uint256 => address) private _owners;
 
     // Mapping owner address to token count
     mapping(address => uint256) private _balances;
@@ -155,7 +154,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * @dev See {IERC721-ownerOf}.
      */
     function ownerOf(uint256 tokenId) public view virtual override returns (address) {
-        address owner = _owners[tokenId];
+        address owner = editions_by_id[tokenId].owner;
         require(owner != address(0), "SparkNFT: owner query for nonexistent token");
         return owner;
     }
@@ -180,7 +179,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     function approve(address to, uint256 tokenId) public virtual override {
         address owner = ownerOf(tokenId);
         require(to != owner, "SparkNFT: approval to current owner");
-
         require(
             _msgSender() == owner || isApprovedForAll(owner, _msgSender()),
             "SparkNFT: approve caller is not owner nor approved for all"
@@ -193,7 +191,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * @dev See {IERC721-getApproved}.
      */
     function getApproved(uint256 tokenId) public view virtual override returns (address) {
-        require(_exists(tokenId), "SparkNFT: approved query for nonexistent token");
+        require(isEditionExist(tokenId), "SparkNFT: approved query for nonexistent token");
 
         return _tokenApprovals[tokenId];
     }
@@ -220,7 +218,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * @dev See {IERC721Metadata-tokenURI}.
      */
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        require(_exists(tokenId), "SparkNFT: URI query for nonexistent token");
+        require(isEditionExist(tokenId), "SparkNFT: URI query for nonexistent token");
 
         string memory _tokenURI = _tokenURIs[tokenId];
         string memory base = _baseURI();
@@ -237,7 +235,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      */
     // 这个函数保留，可能用于二次创作来修改URI
     function _setTokenURI(uint256 tokenId, string memory _tokenURI) internal virtual {
-        require(_exists(tokenId), "SparkNFT: URI set of nonexistent token");
+        require(isEditionExist(tokenId), "SparkNFT: URI set of nonexistent token");
         _tokenURIs[tokenId] = _tokenURI;
     }
 
@@ -310,21 +308,25 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         new_issue.ipfs_hash = _ipfs_hash;
         new_issue.first_sell_price = _first_sell_price;
     }
-
     function _initialRootEdition(uint128 _issue_id) internal returns (uint256) {
         issues_by_id[_issue_id].total_amount += 1;
         uint128 new_edition_id = issues_by_id[_issue_id].total_amount;
-
         uint256 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
+        require(!isEditionExist(new_NFT_id), "SparkNFT: token already minted");
+        require(
+            _checkOnERC721Received(address(0), msg.sender, new_NFT_id, ""),
+            "SparkNFT: transfer to non ERC721Receiver implementer"
+        );
         Edition storage new_NFT = editions_by_id[new_NFT_id];
         new_NFT.NFT_id = new_NFT_id;
+        new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
         new_NFT.transfer_price = 0;
-        new_NFT.profit = 0;
         new_NFT.is_on_sale = false;
         new_NFT.father_id = 0;
+        new_NFT.profit = 0;
         new_NFT.shillPrice = issues_by_id[_issue_id].first_sell_price;
-        new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
-        _safeMint(msg.sender, new_NFT_id);
+        new_NFT.owner = msg.sender;
+        _balances[msg.sender] += 1;
         _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
         emit Mint(
             new_NFT_id,
@@ -332,6 +334,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
             msg.sender,
             new_NFT
         );
+        emit Transfer(address(0), msg.sender, new_NFT_id);
         return new_NFT_id;
     }
     // 由于存在loss ratio 我希望mint的时候始终按照比例收税
@@ -365,15 +368,21 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         require(issues_by_id[_issue_id].total_amount < max_128, "SparkNFT: There is no left in this issue.");
         uint128 new_edition_id = issues_by_id[_issue_id].total_amount;
         uint256 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
+        require(!isEditionExist(new_NFT_id), "SparkNFT: token already minted");
+        require(
+            _checkOnERC721Received(address(0), _owner, new_NFT_id, ""),
+            "SparkNFT: transfer to non ERC721Receiver implementer"
+        );
         Edition storage new_NFT = editions_by_id[new_NFT_id];
         new_NFT.NFT_id = new_NFT_id;
         new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
         new_NFT.transfer_price = 0;
+        new_NFT.is_on_sale = false;
         new_NFT.father_id = _NFT_id;
         new_NFT.shillPrice = editions_by_id[_NFT_id].shillPrice - calculateFee(editions_by_id[_NFT_id].shillPrice, loss_ratio);
-        new_NFT.is_on_sale = false;
         new_NFT.profit = 0;
-        _safeMint(_owner, new_NFT_id);
+        new_NFT.owner = _owner;
+        _balances[_owner] += 1;
         _setTokenURI(new_NFT_id, issues_by_id[_issue_id].ipfs_hash);
         emit Mint(
             new_NFT_id,
@@ -381,6 +390,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
             _owner,
             new_NFT
         );
+        emit Transfer(address(0), _owner, new_NFT_id);
         return new_NFT_id;
     }
 
@@ -483,8 +493,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         _afterTokenTransfer(tokenId);
         _balances[from] -= 1;
         _balances[to] += 1;
-        _owners[tokenId] = to;
-
+        editions_by_id[tokenId].owner = to;
         emit Transfer(from, to, tokenId);
     }
     function claimProfit(uint256 _NFT_id) public {
@@ -541,63 +550,10 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * - `tokenId` must exist.
      */
     function _isApprovedOrOwner(address spender, uint256 tokenId) internal view virtual returns (bool) {
-        require(_exists(tokenId), "SparkNFT: operator query for nonexistent token");
+        require(isEditionExist(tokenId), "SparkNFT: operator query for nonexistent token");
         address owner = ownerOf(tokenId);
         return (spender == owner || getApproved(tokenId) == spender || isApprovedForAll(owner, spender));
     }
-
-    /**
-     * @dev Safely mints `tokenId` and transfers it to `to`.
-     *
-     * Requirements:
-     *
-     * - `tokenId` must not exist.
-     * - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received}, which is called upon a safe transfer.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _safeMint(address to, uint256 tokenId) internal virtual {
-        _safeMint(to, tokenId, "");
-    }
-
-    /**
-     * @dev Same as {xref-ERC721-_safeMint-address-uint256-}[`_safeMint`], with an additional `data` parameter which is
-     * forwarded in {IERC721Receiver-onERC721Received} to contract recipients.
-     */
-    function _safeMint(
-        address to,
-        uint256 tokenId,
-        bytes memory _data
-    ) internal virtual {
-        _mint(to, tokenId);
-        require(
-            _checkOnERC721Received(address(0), to, tokenId, _data),
-            "SparkNFT: transfer to non ERC721Receiver implementer"
-        );
-    }
-
-    /**
-     * @dev Mints `tokenId` and transfers it to `to`.
-     *
-     * WARNING: Usage of this method is discouraged, use {_safeMint} whenever possible
-     *
-     * Requirements:
-     *
-     * - `tokenId` must not exist.
-     * - `to` cannot be the zero address.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _mint(address to, uint256 tokenId) internal virtual {
-        require(to != address(0), "SparkNFT: mint to the zero address");
-        require(!_exists(tokenId), "SparkNFT: token already minted");
-
-        _balances[to] += 1;
-        _owners[tokenId] = to;
-
-        emit Transfer(address(0), to, tokenId);
-    }
-
 
     /**
      * @dev Approve `to` to operate on `tokenId`
@@ -657,10 +613,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         return (uint256(_issue_id)<<128)|uint256(_edition_id);
     }
 
-    function _exists(uint256 tokenId) internal view returns (bool) {
-        return _owners[tokenId] != address(0);
-    }
-
 
 
     function getLossRatio() public pure returns (uint8) {
@@ -677,7 +629,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         return (issues_by_id[_issue_id].issue_id != 0);
     }
     function isEditionExist(uint256 _NFT_id) public view returns (bool) {
-        return (editions_by_id[_NFT_id].NFT_id != 0);
+        return (editions_by_id[_NFT_id].owner != address(0));
     }
 
     function getIssueIdByNFTId(uint256 _NFT_id) public pure returns (uint128) {
