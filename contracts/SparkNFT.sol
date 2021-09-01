@@ -29,7 +29,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     struct Issue {
         // The publisher publishes a series of NFTs with the same content and different NFT_id each time.
         // This structure is used to store the public attributes of same series of NFTs.
-        uint32 issue_id;
+        // uint32 issue_id;
         // Number of NFTs have not been minted in this series
         uint8 royalty_fee;
         // Used to identify which series it is.
@@ -56,7 +56,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     // remain_shill_times 记录该NFT剩余可以产生的NFT
     struct Edition {
         // Information used to decribe an NFT.
-        uint64 NFT_id;
+        // uint64 NFT_id;
         uint64 father_id;
         // Index of this NFT.
         uint128 shillPrice;
@@ -258,7 +258,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         require(_issueIds.current() <= type(uint32).max, "SparkNFT: value doesn't fit in 32 bits.");
         uint32 new_issue_id = uint32(_issueIds.current());
         Issue storage new_issue = issues_by_id[new_issue_id];
-        new_issue.issue_id = new_issue_id;
+        // new_issue.issue_id = new_issue_id;
         new_issue.royalty_fee = _royalty_fee;
         new_issue.shill_times = _shill_times;
         new_issue.first_sell_price = _first_sell_price;
@@ -279,7 +279,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
             "SparkNFT: transfer to non ERC721Receiver implementer"
         );
         Edition storage new_NFT = editions_by_id[new_NFT_id];
-        new_NFT.NFT_id = new_NFT_id;
+        // new_NFT.NFT_id = new_NFT_id;
         new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
         new_NFT.shillPrice = issues_by_id[_issue_id].first_sell_price;
         new_NFT.owner = msg.sender;
@@ -323,7 +323,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
             "SparkNFT: transfer to non ERC721Receiver implementer"
         );
         Edition storage new_NFT = editions_by_id[new_NFT_id];
-        new_NFT.NFT_id = new_NFT_id;
+        // new_NFT.NFT_id = new_NFT_id;
         new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
         new_NFT.father_id = _NFT_id;
         new_NFT.shillPrice = editions_by_id[_NFT_id].shillPrice - calculateFee(editions_by_id[_NFT_id].shillPrice, loss_ratio);
@@ -561,7 +561,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     }
 
     function isIssueExist(uint32 _issue_id) public view returns (bool) {
-        return (issues_by_id[_issue_id].issue_id != 0);
+        return (issues_by_id[_issue_id].total_amount != 0);
     }
     function isEditionExist(uint64 _NFT_id) public view returns (bool) {
         return (editions_by_id[_NFT_id].owner != address(0));
