@@ -38,9 +38,9 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         uint32 total_amount;
         // Metadata json file.
         // issue's name
-        // List of tokens(address) can be accepted for payment.
+        // List of tokens(address) can be acceptd for payment.
         // And specify the min fee should be toke when series of NFTs are sold.
-        // If base_royaltyfee[tokens] == 0, then this token will not be accepted.
+        // If base_royaltyfee[tokens] == 0, then this token will not be acceptd.
         // `A token address` can be ERC-20 token contract address or `address(0)`(ETH).
         uint128 first_sell_price;
         // The price should be payed when this series NTFs are minted.
@@ -296,7 +296,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     // 如果是根节点就不进行手续费扣款
     // 接下来mintNFT
     // 最后触发事件
-    function accepteShill(
+    function acceptShill(
         uint64 _NFT_id
     ) public payable {
         require(isEditionExist(_NFT_id), "SparkNFT: This NFT is not exist.");

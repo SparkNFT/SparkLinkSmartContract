@@ -33,7 +33,7 @@ export default {
       root_nft_id = (await this.publish(contract)).args.rootNFTId;
     }
 
-    await contract.connect(other_account).accepteShill(root_nft_id, { value: BigNumber.from(100) })
+    await contract.connect(other_account).acceptShill(root_nft_id, { value: BigNumber.from(100) })
     const transfer_event = (await contract.queryFilter(contract.filters.Transfer(ethers.constants.AddressZero, other_account.address, null)))[0];
     return transfer_event;
   }
