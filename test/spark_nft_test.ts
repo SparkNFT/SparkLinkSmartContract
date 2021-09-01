@@ -52,9 +52,11 @@ describe("SparkNFT", function () {
     it('should mint a NFT from an issue', async (): Promise<void> => {
       const other = accounts[1];
       const first_sell_price = BigNumber.from(100);
+      console.log("hello " );
 
       const publish_event = await helper.publish(sparkNFT, first_sell_price)
       const root_nft_id = publish_event.args.rootNFTId;
+      const issue_id = await sparkNFT.getIssueIdByNFTId(root_nft_id);
       expect(await sparkNFT.isEditionExist(root_nft_id)).to.eq(true);
 
       const transfer_event = await helper.accept_shill(sparkNFT, other, root_nft_id)

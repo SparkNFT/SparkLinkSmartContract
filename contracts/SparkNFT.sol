@@ -25,28 +25,11 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     // 以这样的方式增大其传播性，同时使得上层的NFT具备价值
     // shill_times 代表这个issue中的一个NFT最多能够产出多少份子NFT
     // total_amount 这个issue总共产出了多少份NFT，同时用于新产出的NFT标号，标号从1开始
-    // first_sell_price 规定了根节点的NFT mint 子节点的费用，之后所有的子节点mint出新节点的费用不会高于这个值
-    struct Issue {
-        // The publisher publishes a series of NFTs with the same content and different NFT_id each time.
-        // This structure is used to store the public attributes of same series of NFTs.
-        // uint32 issue_id;
-        // Number of NFTs have not been minted in this series
-        uint8 royalty_fee;
-        // Used to identify which series it is.
-        // Publisher of this series NFTs
-        uint8 shill_times;
-        uint32 total_amount;
-        // Metadata json file.
-        // issue's name
-        // List of tokens(address) can be acceptd for payment.
-        // And specify the min fee should be toke when series of NFTs are sold.
-        // If base_royaltyfee[tokens] == 0, then this token will not be acceptd.
-        // `A token address` can be ERC-20 token contract address or `address(0)`(ETH).
-        uint128 first_sell_price;
-        // The price should be payed when this series NTFs are minted.
-        // 这两个mapping如果存在token_addr看价格是不可以等于0的，如果等于0的话会导致判不支持
-        // 由于这个价格是写死的，可能会诱导用户的付款倾向
-    }
+    // issue结构体删去，rootNFT的father_id中拼接存储了royaltyfee，shilltimes与total_amount
+    // 位置分别在:
+    // 0~31 total_amount
+    // 48~56 shilltimes
+    // 57~63 royalty_fee
     // 存储NFT相关信息的结构体
     // father_id存储它父节点NFT的id
     // transfer_price 在决定出售的时候设定，买家调起transferFrom付款并转移
@@ -69,8 +52,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         uint128 profit;
         // royalty_fee for every transfer expect from or to exclude address, max is 100;
     }
-    // 分别存储issue与editions
-    mapping (uint32 => Issue) private issues_by_id;
     mapping (uint64 => Edition) private editions_by_id;
     // 确定价格成功后的事件
     event DeterminePrice(
@@ -258,36 +239,28 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         _issueIds.increment();
         require(_issueIds.current() <= type(uint32).max, "SparkNFT: value doesn't fit in 32 bits.");
         uint32 new_issue_id = uint32(_issueIds.current());
-        Issue storage new_issue = issues_by_id[new_issue_id];
-        // new_issue.issue_id = new_issue_id;
-        new_issue.royalty_fee = _royalty_fee;
-        new_issue.shill_times = _shill_times;
-        new_issue.first_sell_price = _first_sell_price;
-        uint64 rootNFTId =  _initialRootEdition(new_issue_id, _ipfs_hash);
+        uint64 rootNFTId = getNftIdByEditionIdAndIssueId(new_issue_id, 1);
+        require(
+            _checkOnERC721Received(address(0), msg.sender, rootNFTId, ""),
+            "SparkNFT: transfer to non ERC721Receiver implementer"
+        );
+        Edition storage new_NFT = editions_by_id[rootNFTId];
+        uint64 information;
+        information = reWriteUint8InUint64(56, _royalty_fee, information);
+        information = reWriteUint8InUint64(48, _shill_times, information);
+        information += 1;
+        new_NFT.father_id = information;
+        new_NFT.remain_shill_times = _shill_times;
+        new_NFT.shillPrice = _first_sell_price;
+        new_NFT.owner = msg.sender;
+        new_NFT.ipfs_hash = _ipfs_hash;
+        _balances[msg.sender] += 1;
+        emit Transfer(address(0), msg.sender, rootNFTId);
         emit Publish(
             new_issue_id,
             msg.sender,
             rootNFTId
         );
-    }
-    function _initialRootEdition(uint32 _issue_id, bytes32 ipfs_hash) internal returns (uint64) {
-        issues_by_id[_issue_id].total_amount += 1;
-        uint32 new_edition_id = issues_by_id[_issue_id].total_amount;
-        uint64 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
-        require(!isEditionExist(new_NFT_id), "SparkNFT: token already minted");
-        require(
-            _checkOnERC721Received(address(0), msg.sender, new_NFT_id, ""),
-            "SparkNFT: transfer to non ERC721Receiver implementer"
-        );
-        Edition storage new_NFT = editions_by_id[new_NFT_id];
-        // new_NFT.NFT_id = new_NFT_id;
-        new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
-        new_NFT.shillPrice = issues_by_id[_issue_id].first_sell_price;
-        new_NFT.owner = msg.sender;
-        new_NFT.ipfs_hash = ipfs_hash;
-        _balances[msg.sender] += 1;
-        emit Transfer(address(0), msg.sender, new_NFT_id);
-        return new_NFT_id;
     }
     // 由于存在loss ratio 我希望mint的时候始终按照比例收税
     // 接受shill的函数，也就是mint新的NFT
@@ -315,8 +288,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         address _owner
     ) internal returns (uint64) {
         uint32 _issue_id = getIssueIdByNFTId(_NFT_id);
-        issues_by_id[_issue_id].total_amount += 1;
-        uint32 new_edition_id = issues_by_id[_issue_id].total_amount;
+        _addTotalAmount(_issue_id);
+        uint32 new_edition_id = getTotalAmountByIssueId(_issue_id);
         uint64 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
         require(
             _checkOnERC721Received(address(0), _owner, new_NFT_id, ""),
@@ -324,7 +297,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         );
         Edition storage new_NFT = editions_by_id[new_NFT_id];
         // new_NFT.NFT_id = new_NFT_id;
-        new_NFT.remain_shill_times = issues_by_id[_issue_id].shill_times;
+        new_NFT.remain_shill_times = getShillTimesByIssueId(_issue_id);
         new_NFT.father_id = _NFT_id;
         new_NFT.shillPrice = editions_by_id[_NFT_id].shillPrice - calculateFee(editions_by_id[_NFT_id].shillPrice, loss_ratio);
         new_NFT.owner = _owner;
@@ -461,8 +434,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         if (editions_by_id[_NFT_id].profit != 0) {
             uint128 amount = editions_by_id[_NFT_id].profit;
             editions_by_id[_NFT_id].profit = 0;
-            if (getFatherByNFTId(_NFT_id) != 0) {
-                uint128 _royalty_fee = calculateFee(editions_by_id[_NFT_id].profit, issues_by_id[getIssueIdByNFTId(_NFT_id)].royalty_fee);
+            if (!isRootNFT(_NFT_id)) {
+                uint128 _royalty_fee = calculateFee(editions_by_id[_NFT_id].profit, getRoyaltyFeeByIssueId(getIssueIdByNFTId(_NFT_id)));
                 _addProfit( getFatherByNFTId(_NFT_id), _royalty_fee);
                 amount -= _royalty_fee;
             }
@@ -551,24 +524,27 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     }
 
     function isIssueExist(uint32 _issue_id) public view returns (bool) {
-        return (issues_by_id[_issue_id].total_amount != 0);
+        return isEditionExist(getRootNFTIdByIssueId(_issue_id));
     }
     function isEditionExist(uint64 _NFT_id) public view returns (bool) {
         return (editions_by_id[_NFT_id].owner != address(0));
     }
+    function isRootNFT(uint64 _NFT_id) public pure returns (bool) {
+        return getBottomUint32FromUint64(_NFT_id) == uint32(1);
+    }
     
     function getRoyaltyFeeByIssueId(uint32 _issue_id) public view returns (uint8) {
         require(isIssueExist(_issue_id), "SparkNFT: This issue is not exist.");
-        return issues_by_id[_issue_id].royalty_fee;
+        return getUint8FromUint64(56, editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
     }
 
-    function getShellTimesByIssyeId(uint32 _issue_id) public view returns (uint8) {
+    function getShillTimesByIssueId(uint32 _issue_id) public view returns (uint8) {
         require(isIssueExist(_issue_id), "SparkNFT: This issue is not exist.");
-        return issues_by_id[_issue_id].shill_times;
+        return getUint8FromUint64(48, editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
     }
 
     function getTotalAmountByIssueId(uint32 _issue_id) public view returns (uint32) {
-        require(isEditionExist(getRootNFTIdByIssueId(_issue_id)), "SparkNFT: This issue is not exist.");
+        require(isIssueExist(_issue_id), "SparkNFT: This issue is not exist.");
         return getBottomUint32FromUint64(editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
     }
 
@@ -596,8 +572,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         return (uint64(_issue_id)<<32)|uint64(_edition_id);
     }
 
-    function getRootNFTIdByIssueId(uint32 _issue_id) internal pure returns (uint64) {
-        return (uint64(_issue_id<<32) | uint64(1));
+    function getRootNFTIdByIssueId(uint32 _issue_id) public pure returns (uint64) {
+        return (uint64(_issue_id)<<32 | uint64(1));
     }
 
     function getLossRatio() public pure returns (uint8) {
