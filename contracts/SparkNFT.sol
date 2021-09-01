@@ -314,10 +314,9 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         uint64 _NFT_id,
         address _owner
     ) internal returns (uint64) {
-        uint32 max_32 = type(uint32).max;
         uint32 _issue_id = getIssueIdByNFTId(_NFT_id);
         issues_by_id[_issue_id].total_amount += 1;
-        require(issues_by_id[_issue_id].total_amount < max_32, "SparkNFT: There is no left in this issue.");
+        require(issues_by_id[_issue_id].total_amount < type(uint32).max, "SparkNFT: There is no left in this issue.");
         uint32 new_edition_id = issues_by_id[_issue_id].total_amount;
         uint64 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
         require(
