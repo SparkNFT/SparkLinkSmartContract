@@ -57,6 +57,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     struct Edition {
         // Information used to decribe an NFT.
         // uint64 NFT_id;
+        // 这个地方可以优化成editionid
         uint64 father_id;
         // Index of this NFT.
         uint128 shillPrice;
@@ -315,7 +316,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     ) internal returns (uint64) {
         uint32 _issue_id = getIssueIdByNFTId(_NFT_id);
         issues_by_id[_issue_id].total_amount += 1;
-        require(issues_by_id[_issue_id].total_amount < type(uint32).max, "SparkNFT: There is no left in this issue.");
         uint32 new_edition_id = issues_by_id[_issue_id].total_amount;
         uint64 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
         require(
@@ -538,26 +538,16 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * and stop existing when they are burned (`_burn`).
      */
 
-    function calculateFee(uint128 _amount, uint8 _fee_percent) internal pure returns (uint128) {
-        return _amount*_fee_percent/10**2;
-    }
-    function getNftIdByEditionIdAndIssueId(uint32 _issue_id, uint32 _edition_id) internal pure returns (uint64) {
-        return (uint64(_issue_id)<<32)|uint64(_edition_id);
-    }
-
-
-    function uint256toUint64(uint256 value) internal pure returns (uint64) {
-        require(value <= type(uint64).max, "SparkNFT: value doesn't fit in 64 bits");
-        return uint64(value);
-    }
-    function getLossRatio() public pure returns (uint8) {
-        return loss_ratio;
-    }
     function _addProfit(uint64 _NFT_id, uint128 _increase) internal {
         editions_by_id[_NFT_id].profit = editions_by_id[_NFT_id].profit+_increase;
     }
+
     function _subProfit(uint64 _NFT_id, uint128 _decrease) internal {
         editions_by_id[_NFT_id].profit = editions_by_id[_NFT_id].profit-_decrease;
+    }
+    function _addTotalAmount(uint32 _issue_id) internal {
+        require(getTotalAmountByIssueId(_issue_id) < type(uint32).max, "SparkNFT: There is no left in this issue.");
+        editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id += 1;
     }
 
     function isIssueExist(uint32 _issue_id) public view returns (bool) {
@@ -566,40 +556,101 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     function isEditionExist(uint64 _NFT_id) public view returns (bool) {
         return (editions_by_id[_NFT_id].owner != address(0));
     }
-
-    function getIssueIdByNFTId(uint64 _NFT_id) public pure returns (uint32) {
-        return uint32(_NFT_id >> 32);
-    }
-    // function getIpfsHashByIssueId(uint128 _issue_id) public view returns (string memory) {
-    //     require(isIssueExist(_issue_id), "SparkNFT: This issue is not exist.");
-    //     return issues_by_id[_issue_id].ipfs_hash;
-    // }
+    
     function getRoyaltyFeeByIssueId(uint32 _issue_id) public view returns (uint8) {
         require(isIssueExist(_issue_id), "SparkNFT: This issue is not exist.");
         return issues_by_id[_issue_id].royalty_fee;
     }
+
     function getShellTimesByIssyeId(uint32 _issue_id) public view returns (uint8) {
         require(isIssueExist(_issue_id), "SparkNFT: This issue is not exist.");
         return issues_by_id[_issue_id].shill_times;
     }
+
     function getTotalAmountByIssueId(uint32 _issue_id) public view returns (uint32) {
-        require(isIssueExist(_issue_id), "SparkNFT: This issue is not exist.");
-        return issues_by_id[_issue_id].total_amount;
+        require(isEditionExist(getRootNFTIdByIssueId(_issue_id)), "SparkNFT: This issue is not exist.");
+        return getBottomUint32FromUint64(editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
     }
+
     function getFatherByNFTId(uint64 _NFT_id) public view returns (uint64) {
         require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
         return editions_by_id[_NFT_id].father_id;
     }
+
     function getTransferPriceByNFTId(uint64 _NFT_id) public view returns (uint128) {
         require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
         return editions_by_id[_NFT_id].transfer_price;
     }
+
     function getShillPriceByNFTId(uint64 _NFT_id) public view returns (uint128) {
         require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
         return editions_by_id[_NFT_id].shillPrice;
     }
+
     function getRemainShillTimesByNFTId(uint64 _NFT_id) public view returns (uint8) {
         require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
         return editions_by_id[_NFT_id].remain_shill_times;
+    }
+  
+    function getNftIdByEditionIdAndIssueId(uint32 _issue_id, uint32 _edition_id) internal pure returns (uint64) {
+        return (uint64(_issue_id)<<32)|uint64(_edition_id);
+    }
+
+    function getRootNFTIdByIssueId(uint32 _issue_id) internal pure returns (uint64) {
+        return (uint64(_issue_id<<32) | uint64(1));
+    }
+
+    function getLossRatio() public pure returns (uint8) {
+        return loss_ratio;
+    }
+   
+    function getIssueIdByNFTId(uint64 _NFT_id) public pure returns (uint32) {
+        return uint32(_NFT_id >> 32);
+    }
+
+    /**
+     * position      position in a memory block
+     * size          data size
+     * base          base data
+     * unbox() extracts the data out of a 256bit word with the given position and returns it
+     * base is checked by validRange() to make sure it is not over size 
+    **/
+    function getUint8FromUint64(uint8 position, uint64 data64) internal pure returns (uint8 data8) {
+        // (((1 << size) - 1) & base >> position)
+        assembly {
+            data8 := and(sub(shl(8, 1), 1), shr(position, data64))
+        }
+    }
+    
+    function getBottomUint32FromUint64(uint64 data64) internal pure returns (uint32 data32) {
+        // (((1 << size) - 1) & base >> position)
+        assembly {
+            data32 := and(sub(shl(32, 1), 1), data64)
+        }
+    }
+
+    /**
+     * _box          32byte data to be modified
+     * position      position in a memory block
+     * size          data size
+     * data          data to be inserted
+     * rewriteBox() updates a 32byte word with a data at the given position with the specified size
+    **/
+
+    function reWriteUint8InUint64(uint8 position, uint8 data8, uint64 data64) internal pure returns (uint64 boxed) {
+        assembly {
+            // mask = ~((1 << 8 - 1) << position)
+            // _box = (mask & _box) | ()data << position)
+            boxed := or( and(data64, not(shl(position, sub(shl(8, 1), 1)))), shl(position, data8))
+        }
+    }
+
+    function uint256toUint64(uint256 value) internal pure returns (uint64) {
+        require(value <= type(uint64).max, "SparkNFT: value doesn't fit in 64 bits");
+        return uint64(value);
+    }
+    
+    function calculateFee(uint128 _amount, uint8 _fee_percent) internal pure returns (uint128) {
+        return _amount*_fee_percent/10**2;
     }
 }
