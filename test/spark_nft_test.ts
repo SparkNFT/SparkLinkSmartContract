@@ -33,7 +33,7 @@ describe("SparkNFT", function () {
 
       expect(event.args.issue_id).to.eq(BigNumber.from(1));
       expect(event.args.publisher).to.hexEqual(owner.address);
-      let root_nft_id = BigNumber.from("0x100000000000000000000000000000000").add(1);
+      let root_nft_id = BigNumber.from("0x100000000").add(1);
       console.log(root_nft_id)
       expect(event.args.rootNFTId).to.eq(BigNumber.from(root_nft_id));
 
