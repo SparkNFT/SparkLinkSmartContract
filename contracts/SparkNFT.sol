@@ -135,7 +135,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      */
     function balanceOf(address owner) public view virtual override returns (uint256) {
         require(owner != address(0), "SparkNFT: balance query for the zero address");
-        return uint256(_balances[owner]);
+        return _balances[owner];
     }
 
     /**
