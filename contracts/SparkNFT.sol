@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity >= 0.8.0;
+pragma solidity >= 0.8.4;
 
 import "./IERC721Receiver.sol";
 import "./IERC721Metadata.sol";
@@ -93,6 +93,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     mapping(address => mapping(address => bool)) private _operatorApprovals;
 
     bytes constant sha256MultiHash = hex"1220"; 
+    bytes constant ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
     // Optional mapping for token URIs
     //----------------------------------------------------------------------------------------------------
@@ -190,8 +191,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      */
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
         require(isEditionExist(uint256toUint64(tokenId)), "SparkNFT: URI query for nonexistent token");
-
-        bytes32  _ipfs_hash = editions_by_id[uint256toUint64(tokenId)].ipfs_hash;
+        
+        bytes32 _ipfs_hash = editions_by_id[uint256toUint64(tokenId)].ipfs_hash;
         string memory encoded_hash = _toBase58String(_ipfs_hash);
         string memory base = _baseURI();
         return string(abi.encodePacked(base, encoded_hash));
@@ -633,7 +634,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     }
 
 
-    function _toBase58String(bytes32 con) internal view returns (string memory) {
+    function _toBase58String(bytes32 con) internal pure returns (string memory) {
         
         bytes memory source = bytes.concat(sha256MultiHash,con);
 
@@ -656,5 +657,27 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         }
         //return digits;
         return string(toAlphabet(reverse(truncate(digits, digitlength))));
+    }
+    function toAlphabet(uint8[] memory indices) public pure returns (bytes memory) {
+        bytes memory output = new bytes(indices.length);
+        for (uint256 i = 0; i<indices.length; i++) {
+            output[i] = ALPHABET[indices[i]];
+        }
+        return output;
+    }
+    function truncate(uint8[] memory array, uint8 length) public pure returns (uint8[] memory) {
+        uint8[] memory output = new uint8[](length);
+        for (uint256 i = 0; i<length; i++) {
+            output[i] = array[i];
+        }
+        return output;
+    }
+  
+    function reverse(uint8[] memory input) public pure returns (uint8[] memory) {
+        uint8[] memory output = new uint8[](input.length);
+        for (uint256 i = 0; i<input.length; i++) {
+            output[i] = input[input.length-1-i];
+        }
+        return output;
     }
 }
