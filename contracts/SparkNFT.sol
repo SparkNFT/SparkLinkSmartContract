@@ -92,6 +92,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     // Mapping from owner to operator approvals
     mapping(address => mapping(address => bool)) private _operatorApprovals;
 
+    bytes constant sha256MultiHash = hex"1220"; 
+
     // Optional mapping for token URIs
     //----------------------------------------------------------------------------------------------------
     /**
@@ -190,9 +192,9 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         require(isEditionExist(uint256toUint64(tokenId)), "SparkNFT: URI query for nonexistent token");
 
         bytes32  _ipfs_hash = editions_by_id[uint256toUint64(tokenId)].ipfs_hash;
+        string memory encoded_hash = _toBase58String(_ipfs_hash);
         string memory base = _baseURI();
-        return string(abi.encodePacked(base, _ipfs_hash));
-        
+        return string(abi.encodePacked(base, encoded_hash));
     }
 
     /**
@@ -628,5 +630,31 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     
     function calculateFee(uint128 _amount, uint8 _fee_percent) internal pure returns (uint128) {
         return _amount*_fee_percent/10**2;
+    }
+
+
+    function _toBase58String(bytes32 con) internal view returns (string memory) {
+        
+        bytes memory source = bytes.concat(sha256MultiHash,con);
+
+        uint8[] memory digits = new uint8[](64); //TODO: figure out exactly how much is needed
+        digits[0] = 0;
+        uint8 digitlength = 1;
+        for (uint256 i = 0; i<source.length; ++i) {
+        uint carry = uint8(source[i]);
+        for (uint256 j = 0; j<digitlength; ++j) {
+            carry += uint(digits[j]) * 256;
+            digits[j] = uint8(carry % 58);
+            carry = carry / 58;
+        }
+        
+        while (carry > 0) {
+            digits[digitlength] = uint8(carry % 58);
+            digitlength++;
+            carry = carry / 58;
+        }
+        }
+        //return digits;
+        return string(toAlphabet(reverse(truncate(digits, digitlength))));
     }
 }
