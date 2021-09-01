@@ -64,7 +64,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         uint8 remain_shill_times;
         address owner;
         bytes32 ipfs_hash;
-        bool is_on_sale;
         uint128 transfer_price;
         uint128 profit;
         // royalty_fee for every transfer expect from or to exclude address, max is 100;
@@ -351,7 +350,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         require(isEditionExist(_NFT_id), "SparkNFT: The NFT you want to buy is not exist.");
         require(msg.sender == ownerOf(_NFT_id), "SparkNFT: NFT's price should set by onwer of it.");
         editions_by_id[_NFT_id].transfer_price = _price;
-        editions_by_id[_NFT_id].is_on_sale = true;
         emit DeterminePrice(_NFT_id, _price);
     }
 
@@ -371,7 +369,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         // Clear approvals from the previous owner
         _approve(address(0), _NFT_id);
         editions_by_id[_NFT_id].transfer_price = 0;
-        editions_by_id[_NFT_id].is_on_sale = false;
     }
     // 加入一个owner调取transfer不需要check是否onsale
     function transferFrom(
@@ -418,7 +415,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         require(_isApprovedOrOwner(_msgSender(), tokenId), "SparkNFT: transfer caller is not owner nor approved");
         require(to != address(0), "SparkNFT: transfer to the zero address");
         if (msg.sender != ownerOf(tokenId)) {
-            require(editions_by_id[tokenId].is_on_sale, "SparkNFT: This NFT is not on sale.");
             require(msg.value == editions_by_id[tokenId].transfer_price, "SparkNFT: not enought ETH");
             _addProfit(tokenId, editions_by_id[tokenId].transfer_price);
             claimProfit(tokenId);
@@ -605,9 +601,5 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     function getRemainShillTimesByNFTId(uint64 _NFT_id) public view returns (uint8) {
         require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
         return editions_by_id[_NFT_id].remain_shill_times;
-    }
-    function isNFTOnSale(uint64 _NFT_id) public view returns (bool) {
-        require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
-        return editions_by_id[_NFT_id].is_on_sale;
     }
 }
