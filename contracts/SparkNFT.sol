@@ -658,14 +658,14 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         //return digits;
         return string(toAlphabet(reverse(truncate(digits, digitlength))));
     }
-    function toAlphabet(uint8[] memory indices) public pure returns (bytes memory) {
+    function toAlphabet(uint8[] memory indices) internal pure returns (bytes memory) {
         bytes memory output = new bytes(indices.length);
         for (uint256 i = 0; i<indices.length; i++) {
             output[i] = ALPHABET[indices[i]];
         }
         return output;
     }
-    function truncate(uint8[] memory array, uint8 length) public pure returns (uint8[] memory) {
+    function truncate(uint8[] memory array, uint8 length) internal pure returns (uint8[] memory) {
         uint8[] memory output = new uint8[](length);
         for (uint256 i = 0; i<length; i++) {
             output[i] = array[i];
@@ -673,7 +673,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         return output;
     }
   
-    function reverse(uint8[] memory input) public pure returns (uint8[] memory) {
+    function reverse(uint8[] memory input) internal pure returns (uint8[] memory) {
         uint8[] memory output = new uint8[](input.length);
         for (uint256 i = 0; i<input.length; i++) {
             output[i] = input[input.length-1-i];

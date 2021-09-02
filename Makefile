@@ -15,3 +15,5 @@ clean:
 
 check:
 	yarn hardhat check
+rinkeby:
+	yarn hardhat run scripts/deploy.ts --network rinkeby
