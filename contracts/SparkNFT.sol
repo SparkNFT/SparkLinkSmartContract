@@ -535,7 +535,15 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     function isRootNFT(uint64 _NFT_id) public pure returns (bool) {
         return getBottomUint32FromUint64(_NFT_id) == uint32(1);
     }
-    
+     function getProfitByNFTId(uint64 _NFT_id) public view returns (uint128){
+        require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
+        uint128 amount = editions_by_id[_NFT_id].profit;
+        if (!isRootNFT(_NFT_id)) {
+            uint128 _royalty_fee = calculateFee(editions_by_id[_NFT_id].profit, getRoyaltyFeeByIssueId(getIssueIdByNFTId(_NFT_id)));
+            amount -= _royalty_fee;
+        }
+        return amount;
+    }
     function getRoyaltyFeeByIssueId(uint32 _issue_id) public view returns (uint8) {
         require(isIssueExist(_issue_id), "SparkNFT: This issue is not exist.");
         return getUint8FromUint64(56, editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
