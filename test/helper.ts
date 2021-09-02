@@ -12,7 +12,7 @@ export default {
     first_sell_price = BigNumber.from(100),
     royalty_fee = BigNumber.from(30),
     shill_times = BigNumber.from(10),
-    ipfs_hash = Buffer.from('1234567890123456789012345678901234567890123456789012345678901234', 'hex'),
+    ipfs_hash = Buffer.from('4f0b018a3b003b7c99f97427f410cafe5707ba18d28b13cd8bfa59e08e110380', 'hex'),
   ) {
     await contract.publish(
       first_sell_price,

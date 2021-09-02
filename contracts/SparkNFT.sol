@@ -302,7 +302,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         // new_NFT.NFT_id = new_NFT_id;
         new_NFT.remain_shill_times = getShillTimesByIssueId(_issue_id);
         new_NFT.father_id = _NFT_id;
-        new_NFT.shillPrice = editions_by_id[_NFT_id].shillPrice - calculateFee(editions_by_id[_NFT_id].shillPrice, loss_ratio);
+        new_NFT.shillPrice = calculateFee(editions_by_id[_NFT_id].shillPrice, loss_ratio);
         new_NFT.owner = _owner;
         new_NFT.ipfs_hash = editions_by_id[_NFT_id].ipfs_hash;
         _balances[_owner] += 1;

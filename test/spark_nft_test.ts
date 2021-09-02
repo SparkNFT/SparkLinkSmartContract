@@ -31,20 +31,17 @@ describe("SparkNFT", function () {
     it('should publish an issue and emit event successfully', async () => {
       const event = await helper.publish(sparkNFT)
 
-      expect(event.args.issue_id).to.eq(BigNumber.from(1));
+      expect(event.args.issue_id).to.eq(1);
       expect(event.args.publisher).to.hexEqual(owner.address);
       let root_nft_id = BigNumber.from("0x100000000").add(1);
-      console.log(root_nft_id)
+      let issue_id = await sparkNFT.getIssueIdByNFTId(root_nft_id);
       expect(event.args.rootNFTId).to.eq(BigNumber.from(root_nft_id));
-
-      // // Issue data
-      // expect(event.args.issueData.name).to.eq("TestIssue");
-      // expect(event.args.issueData.issue_id).to.eq(BigNumber.from(1));
-      // expect(event.args.issueData.total_amount).to.eq(BigNumber.from(1));
-      // expect(event.args.issueData.shill_times).to.eq(BigNumber.from(10));
-      // expect(event.args.issueData.royalty_fee).to.eq(30);
-      // expect(event.args.issueData.ipfs_hash).to.eq('IPFSHASH');
-      // expect(event.args.issueData.first_sell_price).to.eq(BigNumber.from(100))
+      let URI = "https://ipfs.io/ipfs/QmTfCejgo2wTwqnDJs8Lu1pCNeCrCDuE4GAwkna93zdd7d";
+      expect(await sparkNFT.tokenURI(root_nft_id)).to.eq(URI);
+      expect(await sparkNFT.getShillTimesByIssueId(issue_id)).to.eq(10);
+      expect(await sparkNFT.getShillPriceByNFTId(root_nft_id)).to.eq(BigNumber.from(100));
+      expect(await sparkNFT.getTotalAmountByIssueId(issue_id)).to.eq(1);
+      expect(await sparkNFT.getRemainShillTimesByNFTId(root_nft_id)).to.eq(10);
     });
   });
 
@@ -52,19 +49,26 @@ describe("SparkNFT", function () {
     it('should mint a NFT from an issue', async (): Promise<void> => {
       const other = accounts[1];
       const first_sell_price = BigNumber.from(100);
-      console.log("hello " );
 
       const publish_event = await helper.publish(sparkNFT, first_sell_price)
       const root_nft_id = publish_event.args.rootNFTId;
       const issue_id = await sparkNFT.getIssueIdByNFTId(root_nft_id);
       expect(await sparkNFT.isEditionExist(root_nft_id)).to.eq(true);
-
+      expect(await sparkNFT.isIssueExist(issue_id)).to.eq(true);
       const transfer_event = await helper.accept_shill(sparkNFT, other, root_nft_id)
+      expect(transfer_event.args.to).to.eq(other.address);
+      const new_NFT_id = transfer_event.args.tokenId;
+      expect(await sparkNFT.getRemainShillTimesByNFTId(root_nft_id)).to.eq(9);
+      expect(await sparkNFT.getProfitByNFTId(root_nft_id)).to.eq(100);
+      expect(await sparkNFT.getRemainShillTimesByNFTId(new_NFT_id)).to.eq(10);
+      expect(await sparkNFT.getFatherByNFTId(new_NFT_id)).to.eq(root_nft_id);
 
+      expect(await sparkNFT.getShillPriceByNFTId(new_NFT_id)).to.eq(90);
+      expect(await sparkNFT.ownerOf(new_NFT_id)).to.eq(other.address);
+      expect(await sparkNFT.balanceOf(other.address)).to.eq(1);
+      expect(await sparkNFT.tokenURI(new_NFT_id)).to.eq(await sparkNFT.tokenURI(root_nft_id));
       // expect(transfer_event.args.father_id).to.eq(root_nft_id);
       // expect(transfer_event.args.tokenId).not.to.eq(root_nft_id);
-      expect(transfer_event.args.to).to.eq(other.address);
-
       const father_id = await sparkNFT.getFatherByNFTId(transfer_event.args.tokenId);
       expect(father_id).to.eq(root_nft_id)
     });
@@ -115,4 +119,5 @@ describe("SparkNFT", function () {
       expect(transfer_event.args.tokenId).to.eq(nft_id);
     });
   });
+
 });
