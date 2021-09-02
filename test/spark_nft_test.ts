@@ -4,10 +4,12 @@ import { ethers } from "hardhat";
 import { SparkNFT } from "../artifacts/typechain/SparkNFT";
 import { BigNumber } from "@ethersproject/bignumber";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import spark_constant from "./spark_constant";
 import helper from "./helper";
-import exp from "constants";
 
 use(solidity);
+
+
 
 describe("SparkNFT", function () {
   let sparkNFT: SparkNFT;
@@ -22,9 +24,9 @@ describe("SparkNFT", function () {
     sparkNFT = (await sparkNFT.deployed()).connect(owner);
   });
 
-  it("Should return the new greeting once it's changed", async () => {
-    expect(await sparkNFT.name()).to.equal("SparkNFT");
-    expect(await sparkNFT.symbol()).to.equal("SparkNFT");
+  it('Should NFT name and symbol initialized properly in contract creator', async () => {
+    expect(await sparkNFT.name()).to.equal(spark_constant.airpod_ctor_parameters._name);
+    expect(await sparkNFT.symbol()).to.equal(spark_constant.airpod_ctor_parameters._symbol);
   });
 
   context('publish()', async () => {
@@ -36,8 +38,7 @@ describe("SparkNFT", function () {
       let root_nft_id = BigNumber.from("0x100000000").add(1);
       let issue_id = await sparkNFT.getIssueIdByNFTId(root_nft_id);
       expect(event.args.rootNFTId).to.eq(BigNumber.from(root_nft_id));
-      let URI = "https://ipfs.io/ipfs/QmTfCejgo2wTwqnDJs8Lu1pCNeCrCDuE4GAwkna93zdd7d";
-      expect(await sparkNFT.tokenURI(root_nft_id)).to.eq(URI);
+      expect(await sparkNFT.tokenURI(root_nft_id)).to.eq(spark_constant.default_hash_1._URI);
       expect(await sparkNFT.getShillTimesByIssueId(issue_id)).to.eq(10);
       expect(await sparkNFT.getShillPriceByNFTId(root_nft_id)).to.eq(BigNumber.from(100));
       expect(await sparkNFT.getTotalAmountByIssueId(issue_id)).to.eq(1);
@@ -55,7 +56,10 @@ describe("SparkNFT", function () {
       const issue_id = await sparkNFT.getIssueIdByNFTId(root_nft_id);
       expect(await sparkNFT.isEditionExist(root_nft_id)).to.eq(true);
       expect(await sparkNFT.isIssueExist(issue_id)).to.eq(true);
-      const transfer_event = await helper.accept_shill(sparkNFT, other, root_nft_id)
+      const contract_balance_before_acceptShill = await ethers.provider.getBalance(sparkNFT.address);
+      const transfer_event = await helper.accept_shill(sparkNFT, other, root_nft_id);
+      const contract_balance_after_acceptShill = await ethers.provider.getBalance(sparkNFT.address);
+      expect(contract_balance_after_acceptShill.sub(contract_balance_before_acceptShill)).to.eq(await sparkNFT.getShillPriceByNFTId(root_nft_id));
       expect(transfer_event.args.to).to.eq(other.address);
       const new_NFT_id = transfer_event.args.tokenId;
       expect(await sparkNFT.getRemainShillTimesByNFTId(root_nft_id)).to.eq(9);
@@ -72,22 +76,37 @@ describe("SparkNFT", function () {
     });
   });
   context('claim()', async () => {
-    it('should claim accept shill income', async (): Promise<void> => {
+    it('should emit Claim event', async (): Promise<void> => {
       const other = accounts[1];
+      const caller = accounts[2];
       const first_sell_price = BigNumber.from(100);
       const publish_event = await helper.publish(sparkNFT, first_sell_price)
       const root_nft_id = publish_event.args.rootNFTId;
-      const issue_id = await sparkNFT.getIssueIdByNFTId(root_nft_id);
-      const transfer_event = await helper.accept_shill(sparkNFT, other, root_nft_id)
-      const new_NFT_id = transfer_event.args.tokenId;
-      const before_balance = await owner.getBalance();
-      console.log("before_balance: "+ before_balance);
-      let claim_event = await helper.claim_profit(sparkNFT, owner, root_nft_id);
-      console.log("after_balance:  "+ await owner.getBalance())
+      await helper.accept_shill(sparkNFT, other, root_nft_id);
+      const claim_event = await helper.claim_profit(sparkNFT, caller, root_nft_id);
       expect(claim_event.args.NFT_id).to.eq(root_nft_id);
-      expect(claim_event.args.amount).to.eq(100);
       expect(claim_event.args.receiver).to.eq(owner.address);
+      expect(claim_event.args.amount).to.eq(await sparkNFT.getShillPriceByNFTId(root_nft_id));
+      
     });
+    it("should transfer from contract balance to owner balance", async (): Promise<void> => {
+      const other = accounts[1];
+      const caller = accounts[2];
+      const first_sell_price = BigNumber.from(100);
+      const publish_event = await helper.publish(sparkNFT, first_sell_price)
+      const root_nft_id = publish_event.args.rootNFTId;
+      await helper.accept_shill(sparkNFT, other, root_nft_id);
+      const contract_balance_before_claimProfit = await ethers.provider.getBalance(sparkNFT.address);
+      const owner_balance_before_claimProfit = await ethers.provider.getBalance(owner.address);
+      await helper.claim_profit(sparkNFT, caller, root_nft_id);
+      const contract_balance_after_claimProfit = await ethers.provider.getBalance(sparkNFT.address);
+      const owner_balance_after_claimProfit = await ethers.provider.getBalance(owner.address);
+      expect(contract_balance_before_claimProfit.sub(contract_balance_after_claimProfit)).
+        to.eq(await sparkNFT.getShillPriceByNFTId(root_nft_id));
+      expect(owner_balance_after_claimProfit.sub(owner_balance_before_claimProfit)).
+        to.eq(await sparkNFT.getShillPriceByNFTId(root_nft_id));
+    });
+
   });
   context('determinePriceAndApprove()', async () => {
     it('should determine a price and approve', async () => {
@@ -122,6 +141,7 @@ describe("SparkNFT", function () {
       expect(event.args.transfer_price).to.eq(transfer_price);
     });
   });
+
   context('safeTransferFrom()', async () => {
     it('should transfer an NFT from one to another', async () => {
       let transfer_event = await helper.accept_shill(sparkNFT, accounts[1]);
