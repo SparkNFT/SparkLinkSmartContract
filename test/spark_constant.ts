@@ -8,8 +8,9 @@ const default_hash_1 = {
     _URI: "https://ipfs.io/ipfs/QmTfCejgo2wTwqnDJs8Lu1pCNeCrCDuE4GAwkna93zdd7d"
 };
 
-
+const loss_ratio = 90;
 export default {
     airpod_ctor_parameters,
-    default_hash_1
+    default_hash_1,
+    loss_ratio
 };

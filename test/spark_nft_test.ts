@@ -72,19 +72,35 @@ describe("SparkNFT", function () {
     
     it('should mint an owner NFT after remain_shill_times decrease to 0', async (): Promise<void> => {
       const other = accounts[1];
-      const first_sell_price = BigNumber.from(100);
-      const publish_event = await helper.publish(sparkNFT, first_sell_price)
+      const shill_price = BigNumber.from(100);
+      const publish_event = await helper.publish(sparkNFT, shill_price);
       const root_nft_id = publish_event.args.rootNFTId;
       const issue_id = await sparkNFT.getIssueIdByNFTId(root_nft_id);
       const shill_times = await sparkNFT.getShillTimesByIssueId(issue_id);
       for (let i = 1; i < shill_times; i +=1) {
-        await helper.accept_shill(sparkNFT, other, root_nft_id);
+        await helper.accept_shill(sparkNFT, other, root_nft_id, shill_price);
       }
       await sparkNFT.connect(other).acceptShill(root_nft_id, { value: BigNumber.from(100) })
       const transfer_event = (await sparkNFT.queryFilter(sparkNFT.filters.Transfer(ethers.constants.AddressZero, owner.address, null)))[0];
       expect(transfer_event.args.from).to.eq(ethers.constants.AddressZero);
       expect(transfer_event.args.to).to.eq(owner.address);
-    })
+    });
+
+    it('should shill_price decrease by loss ratio', async (): Promise<void> => {
+      const loop_times = 17;
+      const other = accounts[2];
+      const base_account_index = 3;
+      let shill_price = BigNumber.from(100);
+      const publish_event = await helper.publish(sparkNFT, shill_price);
+      const root_nft_id = publish_event.args.rootNFTId;
+      let new_nft_id = (await helper.accept_shill(sparkNFT, other, root_nft_id, shill_price)).args.tokenId;
+      shill_price = shill_price.mul(spark_constant.loss_ratio).div(100);
+      for (let i = 0; i < loop_times; i += 1) {
+        new_nft_id = (await helper.accept_shill(sparkNFT, accounts[base_account_index+i], new_nft_id, shill_price)).args.tokenId;
+        shill_price = shill_price.mul(spark_constant.loss_ratio).div(100);
+      }
+    });
+
   });
   context('claim()', async () => {
     it('should emit Claim event', async (): Promise<void> => {
@@ -100,7 +116,7 @@ describe("SparkNFT", function () {
       expect(claim_event.args.amount).to.eq(await sparkNFT.getShillPriceByNFTId(root_nft_id));
       
     });
-    it("should transfer from contract balance to owner balance", async (): Promise<void> => {
+    it("should transfer ETH from contract balance to owner balance", async (): Promise<void> => {
       const other = accounts[1];
       const caller = accounts[2];
       const first_sell_price = BigNumber.from(100);
@@ -117,7 +133,16 @@ describe("SparkNFT", function () {
       expect(owner_balance_after_claimProfit.sub(owner_balance_before_claimProfit)).
         to.eq(await sparkNFT.getShillPriceByNFTId(root_nft_id));
     });
+    it("should profit spread from the bottom to the top", async (): Promise<void> => {
+      const loop_times = 17;
+      const caller = accounts[1];
+      const other = accounts[2];
+      const base_account_index = 3;
+      let shill_prices:BigNumber[] = new Array;
+      shill_prices.push(BigNumber.from(100));
+      let nft_ids:BigNumber[] = new Array;
 
+    })
   });
   context('determinePriceAndApprove()', async () => {
     it('should determine a price and approve', async () => {

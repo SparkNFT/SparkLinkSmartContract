@@ -26,14 +26,16 @@ export default {
 
   /*
    * Returns Mint() event.
-   * will call publish() if root_nft_id is not given.
+   * will call publish() if nft_id is not given.
    */
-  async accept_shill(contract: SparkNFT, caller_account: SignerWithAddress, root_nft_id?: BigNumber) {
-    if (!root_nft_id) {
-      root_nft_id = (await this.publish(contract)).args.rootNFTId;
+  async accept_shill(contract: SparkNFT, caller_account: SignerWithAddress, nft_id?: BigNumber, value?: BigNumber) {
+    if (!nft_id) {
+      nft_id = (await this.publish(contract)).args.rootNFTId;
     }
-
-    await contract.connect(caller_account).acceptShill(root_nft_id, { value: BigNumber.from(100) })
+    if (!value) {
+      value = BigNumber.from(100);
+    }
+    await contract.connect(caller_account).acceptShill(nft_id, { value:  value})
     const transfer_event = (await contract.queryFilter(contract.filters.Transfer(ethers.constants.AddressZero, caller_account.address, null)))[0];
     return transfer_event;
   },
