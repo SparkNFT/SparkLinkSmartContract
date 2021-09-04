@@ -561,6 +561,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
 
     function getFatherByNFTId(uint64 _NFT_id) public view returns (uint64) {
         require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
+        require(!isRootNFT(_NFT_id), "SparkNFT: Root NFT doesn't have father NFT.");
         return editions_by_id[_NFT_id].father_id;
     }
 
@@ -594,7 +595,9 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     function getIssueIdByNFTId(uint64 _NFT_id) public pure returns (uint32) {
         return uint32(_NFT_id >> 32);
     }
-
+    function getEditionIdByNFTId(uint64 _NFT_id) public pure returns (uint32) {
+        return getBottomUint32FromUint64(_NFT_id);
+    }
     /**
      * position      position in a memory block
      * size          data size
