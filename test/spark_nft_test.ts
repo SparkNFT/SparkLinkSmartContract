@@ -30,6 +30,10 @@ describe("SparkNFT", function () {
   });
 
   context('publish()', async () => {
+
+    it('Should publish reject invalid parameters', async () => {
+
+    });
     it('should publish an issue and emit event successfully', async () => {
       const event = await helper.publish(sparkNFT)
 
@@ -47,6 +51,9 @@ describe("SparkNFT", function () {
   });
 
   context('acceptShill()', async () => {
+    it('Should acceptShill reject invalid parameters', async () => {
+
+    });
     it('should mint a NFT from an issue', async (): Promise<void> => {
       const other = accounts[1];
       const first_sell_price = BigNumber.from(100);
