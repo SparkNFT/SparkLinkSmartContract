@@ -103,7 +103,6 @@ describe("SparkNFT", function () {
       for (let i = 0; i < loop_times; i += 1) {
         father_nft_id = new_nft_id;
         new_nft_id = (await helper.accept_shill(sparkNFT, accounts[base_account_index+i], new_nft_id, shill_price)).args.tokenId;
-        // console.log("shill_price: " + BigNumber.from(Math.floor(Number(shill_price)*Number(sub_royalty_fee)/100)));
         expect((await sparkNFT.getProfitByNFTId(father_nft_id))).to.eq(BigNumber.from(Math.ceil(Number(shill_price)*Number(sub_royalty_fee)/100)));
         shill_price = shill_price.mul(spark_constant.loss_ratio).div(100);
       }
@@ -156,7 +155,6 @@ describe("SparkNFT", function () {
       let issue_id = await sparkNFT.getIssueIdByNFTId(nft_ids[0]);
       let royalty_fee = await sparkNFT.getRoyaltyFeeByIssueId(issue_id);
       let sub_royalty_fee = (BigNumber.from(100)).sub(royalty_fee);
-      // console.log("sub_royalty_fee: " + sub_royalty_fee);
       for (let i = 0; i < loop_times; i += 1){
         nft_ids.push((await helper.accept_shill(sparkNFT, accounts[base_account_index+i], nft_ids[i], shill_prices[i])).args.tokenId);
         shill_prices.push(shill_prices[i].mul(spark_constant.loss_ratio).div(100));
@@ -164,21 +162,13 @@ describe("SparkNFT", function () {
       profits[loop_times] = BigNumber.from(0);
       claim_increases[loop_times] = BigNumber.from(0);
       profits[loop_times-1] = (await sparkNFT.getShillPriceByNFTId(nft_ids[loop_times-1]));
-      // console.log("profit " + await sparkNFT.getEditionIdByNFTId(nft_ids[loop_times-1]) + ": " + await sparkNFT.getProfitByNFTId(nft_ids[loop_times-1]));
       claim_increases[loop_times-1] = profits[loop_times-1].sub(profits[loop_times-1].mul(royalty_fee).div(100))
-      // console.log("claim_increase "+ await sparkNFT.getEditionIdByNFTId(nft_ids[loop_times-1]) + ": "+ claim_increases[loop_times-1]);
-      // expect(await sparkNFT.getProfitByNFTId(nft_ids[loop_times-1])).to.eq(claim_increases[loop_times-1]);
       for (let i = loop_times-2; i >= 0; i -= 1){
         profits[i] = profits[i+1].mul(royalty_fee).div(100).add(await sparkNFT.getShillPriceByNFTId(nft_ids[i]));
         claim_increases[i] = profits[i].sub(profits[i].mul(royalty_fee).div(100));
-        // console.log("claim_increase "+ await sparkNFT.getEditionIdByNFTId(nft_ids[i]) + ": " + claim_increases[i]);
-        // expect(await sparkNFT.getProfitByNFTId(nft_ids[i])).to.eq(claim_increases[i]);
       }
       for (let i = loop_times-1; i >= 1; i -= 1) {
-        
-        // console.log("profit " + await sparkNFT.getEditionIdByNFTId(nft_ids[i]) + ": " + await sparkNFT.getProfitByNFTId(nft_ids[i]));
-        // console.log("shill price " + await sparkNFT.getEditionIdByNFTId(nft_ids[i]) + ": " + shill_prices[i].sub(shill_prices[i].mul(royalty_fee).div(100)));
-        expect(shill_prices[i].sub(shill_prices[i].mul(royalty_fee).div(100))).to.eq(await sparkNFT.getProfitByNFTId(nft_ids[i]));
+       expect(shill_prices[i].sub(shill_prices[i].mul(royalty_fee).div(100))).to.eq(await sparkNFT.getProfitByNFTId(nft_ids[i]));
       }
       claim_increases[0] = profits[0];
       for (let i = loop_times-1; i >= 0; i -= 1) {
@@ -187,9 +177,6 @@ describe("SparkNFT", function () {
         let amount = claim_event.args.amount;
         let after_balance = await ethers.provider.getBalance(await sparkNFT.ownerOf(nft_ids[i]));
         expect(amount).to.eq(after_balance.sub(before_balance));
-        // console.log("claim_increase "+ await sparkNFT.getEditionIdByNFTId(nft_ids[i]) + ": " + claim_increases[i]);
-        // console.log("amount "+ await sparkNFT.getEditionIdByNFTId(nft_ids[i]) + ": " + amount);
-        // expect(amount).to.eq(claim_increases[i]);
         expect(claim_increases[i]).to.eq(amount);
       }
     })
@@ -256,5 +243,24 @@ describe("SparkNFT", function () {
       expect(transfer_event.args.tokenId).to.eq(nft_id);
     });
   });
-
+  context('approve()', async () => {
+    it("should approve an NFT from owner", async () => {
+      let publish_event = await helper.publish(sparkNFT);
+      let root_nft_id = publish_event.args.rootNFTId;
+      let owner = accounts[0];
+      let other = accounts[1];
+      await sparkNFT.connect(owner).approve(other.address, root_nft_id);
+      expect(other.address).to.eq(await sparkNFT.getApproved(root_nft_id));
+    })
+  })  
+  context('setApprovalForAll()', async () => {
+    it("should approve all an NFT from owner", async () => {
+      let publish_event = await helper.publish(sparkNFT);
+      let root_nft_id = publish_event.args.rootNFTId;
+      let owner = accounts[0];
+      let other = accounts[1];
+      await sparkNFT.connect(owner).setApprovalForAll(other.address, true);
+      expect(true).to.eq(await sparkNFT.isApprovedForAll(owner.address,other.address));
+    })
+  })
 });
