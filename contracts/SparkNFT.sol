@@ -4,16 +4,11 @@ pragma solidity >= 0.8.4;
 
 import "./IERC721Receiver.sol";
 import "./IERC721Metadata.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import "hardhat/console.sol";
 contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     using Address for address;
     using Counters for Counters.Counter;
@@ -586,6 +581,14 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
 
     function getRootNFTIdByIssueId(uint32 _issue_id) public pure returns (uint64) {
         return (uint64(_issue_id)<<32 | uint64(1));
+    }
+    function getDeepthByNFTId(uint64 _NFT_id) public view returns (uint64) {
+        require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
+        uint64 deepth = 0;
+        for (deepth = 0; !isRootNFT(_NFT_id); _NFT_id = getFatherByNFTId(_NFT_id)) {
+            deepth += 1;
+        }
+        return deepth;
     }
 
     function getLossRatio() public pure returns (uint8) {
