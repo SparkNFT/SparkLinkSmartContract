@@ -9,6 +9,8 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+
+
 contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     using Address for address;
     using Counters for Counters.Counter;
@@ -181,9 +183,11 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
 
     function _baseURI() internal pure returns (string memory) {
         return "https://ipfs.io/ipfs/";
-    } /**
+    } 
+    /**
      * @dev See {IERC721Metadata-tokenURI}.
      */
+
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
         require(isEditionExist(uint256toUint64(tokenId)), "SparkNFT: URI query for nonexistent token");
         
@@ -260,6 +264,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
             rootNFTId
         );
     }
+
     // 由于存在loss ratio 我希望mint的时候始终按照比例收税
     // 接受shill的函数，也就是mint新的NFT
     // 传入参数是新的NFT的父节点的NFTid
@@ -333,6 +338,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         approve(_to, _NFT_id);
         emit DeterminePriceAndApprove(_NFT_id, _price, _to);
     }
+
     // 将flag在转移后重新设置
     function _afterTokenTransfer (
         uint64 _NFT_id
@@ -341,6 +347,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         _approve(address(0), _NFT_id);
         editions_by_id[_NFT_id].transfer_price = 0;
     }
+
     // 加入一个owner调取transfer不需要check是否onsale
     function transferFrom(
         address from,
@@ -399,6 +406,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         editions_by_id[tokenId].owner = to;
         emit Transfer(from, to, tokenId);
     }
+
      /**
      * @dev Safely transfers `tokenId` token from `from` to `to`, checking first that contract recipients
      * are aware of the ERC721 protocol to prevent tokens from being forever locked.
@@ -431,12 +439,12 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
         if (editions_by_id[_NFT_id].profit != 0) {
             uint128 amount = editions_by_id[_NFT_id].profit;
+            editions_by_id[_NFT_id].profit = 0;
             if (!isRootNFT(_NFT_id)) {
-                uint128 _royalty_fee = calculateFee(editions_by_id[_NFT_id].profit, getRoyaltyFeeByIssueId(getIssueIdByNFTId(_NFT_id)));
+                uint128 _royalty_fee = calculateFee(amount, getRoyaltyFeeByIssueId(getIssueIdByNFTId(_NFT_id)));
                 _addProfit( getFatherByNFTId(_NFT_id), _royalty_fee);
                 amount -= _royalty_fee;
             }
-            editions_by_id[_NFT_id].profit = 0;
             payable(ownerOf(_NFT_id)).transfer(amount);
             emit Claim(
                 _NFT_id,
@@ -500,6 +508,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
             return true;
         }
     }
+
     /**
      * @dev Returns whether `tokenId` exists.
      *
@@ -516,6 +525,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     function _subProfit(uint64 _NFT_id, uint128 _decrease) internal {
         editions_by_id[_NFT_id].profit = editions_by_id[_NFT_id].profit-_decrease;
     }
+
     function _addTotalAmount(uint32 _issue_id) internal {
         require(getTotalAmountByIssueId(_issue_id) < type(uint32).max, "SparkNFT: There is no left in this issue.");
         editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id += 1;
@@ -524,13 +534,16 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     function isIssueExist(uint32 _issue_id) public view returns (bool) {
         return isEditionExist(getRootNFTIdByIssueId(_issue_id));
     }
+
     function isEditionExist(uint64 _NFT_id) public view returns (bool) {
         return (editions_by_id[_NFT_id].owner != address(0));
     }
+
     function isRootNFT(uint64 _NFT_id) public pure returns (bool) {
         return getBottomUint32FromUint64(_NFT_id) == uint32(1);
     }
-     function getProfitByNFTId(uint64 _NFT_id) public view returns (uint128){
+
+    function getProfitByNFTId(uint64 _NFT_id) public view returns (uint128){
         require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
         uint128 amount = editions_by_id[_NFT_id].profit;
         if (!isRootNFT(_NFT_id)) {
@@ -539,6 +552,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         }
         return amount;
     }
+
     function getRoyaltyFeeByIssueId(uint32 _issue_id) public view returns (uint8) {
         require(isIssueExist(_issue_id), "SparkNFT: This issue is not exist.");
         return getUint8FromUint64(56, editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
@@ -582,6 +596,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     function getRootNFTIdByIssueId(uint32 _issue_id) public pure returns (uint64) {
         return (uint64(_issue_id)<<32 | uint64(1));
     }
+
     function getDepthByNFTId(uint64 _NFT_id) public view returns (uint64) {
         require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
         uint64 depth = 0;
@@ -598,9 +613,11 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     function getIssueIdByNFTId(uint64 _NFT_id) public pure returns (uint32) {
         return uint32(_NFT_id >> 32);
     }
+
     function getEditionIdByNFTId(uint64 _NFT_id) public pure returns (uint32) {
         return getBottomUint32FromUint64(_NFT_id);
     }
+
     /**
      * position      position in a memory block
      * size          data size
@@ -647,7 +664,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         return _amount*_fee_percent/10**2;
     }
 
-
     function _toBase58String(bytes32 con) internal pure returns (string memory) {
         
         bytes memory source = bytes.concat(sha256MultiHash,con);
@@ -672,6 +688,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         //return digits;
         return string(toAlphabet(reverse(truncate(digits, digitlength))));
     }
+
     function toAlphabet(uint8[] memory indices) internal pure returns (bytes memory) {
         bytes memory output = new bytes(indices.length);
         for (uint256 i = 0; i<indices.length; i++) {
@@ -679,6 +696,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         }
         return output;
     }
+    
     function truncate(uint8[] memory array, uint8 length) internal pure returns (uint8[] memory) {
         uint8[] memory output = new uint8[](length);
         for (uint256 i = 0; i<length; i++) {
