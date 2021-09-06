@@ -151,6 +151,7 @@ describe("SparkNFT", function () {
       let claim_increases:BigNumber[] = new Array(loop_times+1);
       shill_prices.push(BigNumber.from(100));
       const publish_event = await helper.publish(sparkNFT, shill_prices[0]);
+      // 数组长度为loop_times+1
       nft_ids.push(publish_event.args.rootNFTId);
       let issue_id = await sparkNFT.getIssueIdByNFTId(nft_ids[0]);
       let royalty_fee = await sparkNFT.getRoyaltyFeeByIssueId(issue_id);
@@ -161,17 +162,35 @@ describe("SparkNFT", function () {
         shill_prices.push(shill_prices[i].mul(spark_constant.loss_ratio).div(100));
       }
       profits[loop_times] = BigNumber.from(0);
+      claim_increases[loop_times] = BigNumber.from(0);
       profits[loop_times-1] = (await sparkNFT.getShillPriceByNFTId(nft_ids[loop_times-1]));
       // console.log("profit " + await sparkNFT.getEditionIdByNFTId(nft_ids[loop_times-1]) + ": " + await sparkNFT.getProfitByNFTId(nft_ids[loop_times-1]));
-      claim_increases[loop_times-1] = profits[loop_times-1].mul(sub_royalty_fee).div(100);
+      claim_increases[loop_times-1] = profits[loop_times-1].sub(profits[loop_times-1].mul(royalty_fee).div(100))
       // console.log("claim_increase "+ await sparkNFT.getEditionIdByNFTId(nft_ids[loop_times-1]) + ": "+ claim_increases[loop_times-1]);
       // expect(await sparkNFT.getProfitByNFTId(nft_ids[loop_times-1])).to.eq(claim_increases[loop_times-1]);
       for (let i = loop_times-2; i >= 0; i -= 1){
         profits[i] = profits[i+1].mul(royalty_fee).div(100).add(await sparkNFT.getShillPriceByNFTId(nft_ids[i]));
-        claim_increases[i] = profits[i].mul(sub_royalty_fee).div(100);
-        // console.log("profit " + await sparkNFT.getEditionIdByNFTId(nft_ids[i]) + ": " + await sparkNFT.getProfitByNFTId(nft_ids[i]));
+        claim_increases[i] = profits[i].sub(profits[i].mul(royalty_fee).div(100));
         // console.log("claim_increase "+ await sparkNFT.getEditionIdByNFTId(nft_ids[i]) + ": " + claim_increases[i]);
         // expect(await sparkNFT.getProfitByNFTId(nft_ids[i])).to.eq(claim_increases[i]);
+      }
+      for (let i = loop_times-1; i >= 1; i -= 1) {
+        
+        // console.log("profit " + await sparkNFT.getEditionIdByNFTId(nft_ids[i]) + ": " + await sparkNFT.getProfitByNFTId(nft_ids[i]));
+        // console.log("shill price " + await sparkNFT.getEditionIdByNFTId(nft_ids[i]) + ": " + shill_prices[i].sub(shill_prices[i].mul(royalty_fee).div(100)));
+        expect(shill_prices[i].sub(shill_prices[i].mul(royalty_fee).div(100))).to.eq(await sparkNFT.getProfitByNFTId(nft_ids[i]));
+      }
+      claim_increases[0] = profits[0];
+      for (let i = loop_times-1; i >= 0; i -= 1) {
+        let before_balance = await ethers.provider.getBalance(await sparkNFT.ownerOf(nft_ids[i]));
+        let claim_event = await helper.claim_profit(sparkNFT, caller, nft_ids[i]);
+        let amount = claim_event.args.amount;
+        let after_balance = await ethers.provider.getBalance(await sparkNFT.ownerOf(nft_ids[i]));
+        expect(amount).to.eq(after_balance.sub(before_balance));
+        // console.log("claim_increase "+ await sparkNFT.getEditionIdByNFTId(nft_ids[i]) + ": " + claim_increases[i]);
+        // console.log("amount "+ await sparkNFT.getEditionIdByNFTId(nft_ids[i]) + ": " + amount);
+        // expect(amount).to.eq(claim_increases[i]);
+        expect(claim_increases[i]).to.eq(amount);
       }
     })
   });
