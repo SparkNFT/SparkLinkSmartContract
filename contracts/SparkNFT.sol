@@ -582,13 +582,13 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     function getRootNFTIdByIssueId(uint32 _issue_id) public pure returns (uint64) {
         return (uint64(_issue_id)<<32 | uint64(1));
     }
-    function getDeepthByNFTId(uint64 _NFT_id) public view returns (uint64) {
+    function getDepthByNFTId(uint64 _NFT_id) public view returns (uint64) {
         require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
-        uint64 deepth = 0;
-        for (deepth = 0; !isRootNFT(_NFT_id); _NFT_id = getFatherByNFTId(_NFT_id)) {
-            deepth += 1;
+        uint64 depth = 0;
+        for (depth = 0; !isRootNFT(_NFT_id); _NFT_id = getFatherByNFTId(_NFT_id)) {
+            depth += 1;
         }
-        return deepth;
+        return depth;
     }
 
     function getLossRatio() public pure returns (uint8) {
