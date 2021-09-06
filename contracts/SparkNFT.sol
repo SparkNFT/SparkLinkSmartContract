@@ -155,8 +155,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         }
     }
 
-    
-
     function transferFrom(address from, address to, uint256 tokenId) external payable override {
         _transfer(from, to, uint256toUint64(tokenId));
     }
@@ -285,7 +283,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         return _symbol;
     }
 
-   
     /**
      * @dev See {IERC721-getApproved}.
      */
@@ -294,7 +291,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
 
         return _tokenApprovals[uint256toUint64(tokenId)];
     }
-  
 
     /**
      * @dev See {IERC721-isApprovedForAll}.
