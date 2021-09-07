@@ -99,7 +99,7 @@ describe("SparkNFT", function () {
       {
         let other = accounts[1];
         let error_info = "SparkNFT: This NFT is not exist.";
-        let invalid_parameter = spark_constant.nft_id_not_exisit;
+        let invalid_parameter = spark_constant.nft_id_not_exist;
         await expect(sparkNFT.connect(other).acceptShill(invalid_parameter)
         ).to.be.revertedWith(error_info);
       }
@@ -192,7 +192,16 @@ describe("SparkNFT", function () {
     });
 
   });
-  context('claim()', async () => {
+  context('claimProfit()', async () => {
+    it('Should claimProfit reject none exist Edition', async () => {
+      {
+        let other = accounts[1];
+        let error_info = "SparkNFT: Edition is not exist.";
+        let invalid_parameter = spark_constant.nft_id_not_exist;
+        await expect(sparkNFT.connect(other).claimProfit(invalid_parameter)
+        ).to.be.revertedWith(error_info);
+      }
+    });
     it('should emit Claim event', async (): Promise<void> => {
       const other = accounts[1];
       const caller = accounts[2];
@@ -268,6 +277,15 @@ describe("SparkNFT", function () {
     })
   });
   context('determinePriceAndApprove()', async () => {
+    it('Should determinePriceAndApprove reject none exist Edition', async () => {
+      {
+        let other = accounts[1];
+        let error_info = "SparkNFT: The NFT you want to buy is not exist.";
+        let invalid_parameter = spark_constant.nft_id_not_exist;
+        await expect(sparkNFT.connect(other).determinePriceAndApprove(invalid_parameter, BigNumber.from(12), owner.address)
+        ).to.be.revertedWith(error_info);
+      }
+    });
     it('should determine a price and approve', async () => {
       const owner = accounts[1];
       const receiver = accounts[2];
