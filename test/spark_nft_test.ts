@@ -78,6 +78,7 @@ describe("SparkNFT", function () {
         )).to.be.reverted;
       }
     });
+
     it('should publish an issue and emit event successfully', async () => {
       const event = await helper.publish(sparkNFT)
 
@@ -104,6 +105,7 @@ describe("SparkNFT", function () {
         ).to.be.revertedWith(error_info);
       }
     });
+
     it('Should acceptShill reject not enough ETH', async () => {
       {
         let other = accounts[1];
@@ -115,6 +117,7 @@ describe("SparkNFT", function () {
         ).to.be.revertedWith(error_info);
       }
     });
+
     it('Should acceptShill reject no remain shill times', async () => {
       {
         let other = accounts[1];
@@ -130,6 +133,7 @@ describe("SparkNFT", function () {
         ).to.be.revertedWith(error_info);
       }
     });
+
     it('should mint a NFT from an issue', async (): Promise<void> => {
       const other = accounts[1];
       const first_sell_price = BigNumber.from(100);
@@ -202,6 +206,7 @@ describe("SparkNFT", function () {
         ).to.be.revertedWith(error_info);
       }
     });
+
     it('should emit Claim event', async (): Promise<void> => {
       const other = accounts[1];
       const caller = accounts[2];
@@ -215,6 +220,7 @@ describe("SparkNFT", function () {
       expect(claim_event.args.amount).to.eq(await sparkNFT.getShillPriceByNFTId(root_nft_id));
       
     });
+
     it("should transfer ETH from contract balance to owner balance", async (): Promise<void> => {
       const other = accounts[1];
       const caller = accounts[2];
@@ -232,6 +238,7 @@ describe("SparkNFT", function () {
       expect(owner_balance_after_claimProfit.sub(owner_balance_before_claimProfit)).
         to.eq(await sparkNFT.getShillPriceByNFTId(root_nft_id));
     });
+
     it("should profit spread from the bottom to the top", async (): Promise<void> => {
       const loop_times = 17;
       const caller = accounts[1];
@@ -288,6 +295,7 @@ describe("SparkNFT", function () {
         ).to.be.revertedWith(error_info);
       }
     });
+
     it('Should determinePriceAndApprove reject none exist Edition', async () => {
       {
         let other = accounts[1];
@@ -297,6 +305,7 @@ describe("SparkNFT", function () {
         ).to.be.revertedWith(error_info);
       }
     });
+
     it('Should determinePriceAndApprove reject approve to owner', async () => {
       {
         let other = accounts[1];
@@ -307,6 +316,7 @@ describe("SparkNFT", function () {
         ).to.be.revertedWith(error_info);
       }
     });
+
     it('should determine a price and approve', async () => {
       const owner = accounts[1];
       const receiver = accounts[2];
@@ -411,7 +421,31 @@ describe("SparkNFT", function () {
       expect(transfer_event.args.tokenId).to.eq(nft_id);
     });
   });
+
   context('approve()', async () => {
+    it('Should approve reject approve to owner', async () => {
+      {
+        let other = accounts[1];
+        let error_info = "SparkNFT: approval to current owner";
+        const publish_event = await helper.publish(sparkNFT);
+        let root_nft_id = publish_event.args.rootNFTId;
+        await expect(sparkNFT.connect(owner).approve(owner.address, root_nft_id)
+          ).to.be.revertedWith(error_info);
+      }
+    });
+
+    it('Should approve reject caller who is not owner', async () => {
+      {
+        let other = accounts[1];
+        let caller = accounts[3];
+        let error_info = "SparkNFT: approve caller is not owner nor approved for all";
+        const publish_event = await helper.publish(sparkNFT);
+        let root_nft_id = publish_event.args.rootNFTId;
+        await expect(sparkNFT.connect(caller).approve(other.address, root_nft_id)
+          ).to.be.revertedWith(error_info);
+      }
+    });
+
     it("should approve an NFT from owner", async () => {
       let publish_event = await helper.publish(sparkNFT);
       let root_nft_id = publish_event.args.rootNFTId;
@@ -423,13 +457,33 @@ describe("SparkNFT", function () {
   });
 
   context('setApprovalForAll()', async () => {
+
+    it('Should setApprovalForAll reject approve to caller', async () => {
+      {
+        await helper.publish(sparkNFT);
+        let owner = accounts[0];
+        let error_info = "SparkNFT: approve to caller";
+        await expect(sparkNFT.connect(owner).setApprovalForAll(owner.address, true)).to.be.revertedWith(error_info);
+      }
+    });
+
     it("should approve all an NFT from owner", async () => {
-      let publish_event = await helper.publish(sparkNFT);
-      let root_nft_id = publish_event.args.rootNFTId;
+      await helper.publish(sparkNFT);
       let owner = accounts[0];
       let other = accounts[1];
       await sparkNFT.connect(owner).setApprovalForAll(other.address, true);
       expect(true).to.eq(await sparkNFT.isApprovedForAll(owner.address,other.address));
     })
+
+    it("should chancel approve all an NFT from owner", async () => {
+      await helper.publish(sparkNFT);
+      let owner = accounts[0];
+      let other = accounts[1];
+      await sparkNFT.connect(owner).setApprovalForAll(other.address, true);
+      expect(true).to.eq(await sparkNFT.isApprovedForAll(owner.address,other.address));
+      await sparkNFT.connect(owner).setApprovalForAll(other.address, false);
+      expect(false).to.eq(await sparkNFT.isApprovedForAll(owner.address,other.address));
+    })
   })
+
 });
