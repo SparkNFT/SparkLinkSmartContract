@@ -6,6 +6,8 @@ import { BigNumber } from "@ethersproject/bignumber";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import spark_constant from "./spark_constant";
 import helper from "./helper";
+import { utils } from "ethers";
+import exp from "constants";
 
 use(solidity);
 
@@ -395,7 +397,7 @@ describe("SparkNFT", function () {
 
       await sparkNFT.connect(owner).determinePriceAndApprove(nft_id, price, receiver.address);
 
-      await sparkNFT.connect(owner)["safeTransferFrom(address,address,uint256)"](
+      await sparkNFT.connect(receiver)["safeTransferFrom(address,address,uint256)"](
         owner.address,
         receiver.address,
         nft_id,
@@ -412,6 +414,41 @@ describe("SparkNFT", function () {
       expect(transfer_event.args.to).to.eq(receiver.address);
       expect(transfer_event.args.tokenId).to.eq(nft_id);
     });
+
+    it('should transfer give correct profit to seller', async () => {
+      let publish_event = await helper.publish(sparkNFT);
+      const nft_id = publish_event.args.rootNFTId;
+      const price_base = BigNumber.from(100);
+      const price_increase = BigNumber.from(11451);
+      const loop_times = 10;
+      for (let i = 0; i < loop_times; i += 1) {
+        await sparkNFT.connect(accounts[i]).determinePriceAndApprove(nft_id, price_base.add(price_increase.mul(i)), accounts[i+1].address);
+        const before_owner_balance = await ethers.provider.getBalance(accounts[i].address);
+        await sparkNFT.connect(accounts[i+1])["safeTransferFrom(address,address,uint256)"](
+          accounts[i].address,
+          accounts[i+1].address,
+          nft_id,
+          { value: price_base.add(price_increase.mul(i))}
+        );      
+        let transfer_event = (await sparkNFT.queryFilter(sparkNFT.filters.Transfer(
+          accounts[i].address,
+          accounts[i+1].address,
+          nft_id
+        )))[0];
+        expect(transfer_event.args.from).to.eq(accounts[i].address);
+        expect(transfer_event.args.to).to.eq(accounts[i+1].address);
+        expect(transfer_event.args.tokenId).to.eq(nft_id);
+        let claim_event = (await sparkNFT.queryFilter(sparkNFT.filters.Claim(
+          nft_id,
+          accounts[i].address,
+          null
+        )))[0]
+        const after_owner_balance = await ethers.provider.getBalance(accounts[i].address);
+        // console.log(i+ " claim_event.args.amount: " + claim_event.args.amount + " price_base.add(price_increase.mul(i)):" + price_base.add(price_increase.mul(i)))
+        expect(claim_event.args.amount).to.eq(price_base.add(price_increase.mul(i)));
+        // expect(after_owner_balance.sub(before_owner_balance)).to.eq(price_base.add(price_increase.mul(i)));
+      }
+    })
   });
 
   context('approve()', async () => {

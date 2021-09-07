@@ -48,8 +48,26 @@ const publish_one_hundred_royalty_fee = {
 }
 const publish_zero_royalty_fee = {
     _first_sell_price: BigNumber.from(1000),
-    _royalty_fee: 100,
+    _royalty_fee: 0,
     _shill_times: 12,
+    ipfs_hash: Buffer.from('4f0b018a3b003b7c99f97427f410cafe5707ba18d28b13cd8bfa59e08e110380', 'hex')
+}
+const publish_zero_first_sell_price = {
+    _first_sell_price: BigNumber.from(0),
+    _royalty_fee: 12,
+    _shill_times: 12,
+    ipfs_hash: Buffer.from('4f0b018a3b003b7c99f97427f410cafe5707ba18d28b13cd8bfa59e08e110380', 'hex')
+}
+const publish_zero_shill_times = {
+    _first_sell_price: BigNumber.from(1121),
+    _royalty_fee: 12,
+    _shill_times: 0,
+    ipfs_hash: Buffer.from('4f0b018a3b003b7c99f97427f410cafe5707ba18d28b13cd8bfa59e08e110380', 'hex')
+}
+const publish_one_shill_times = {
+    _first_sell_price: BigNumber.from(1121),
+    _royalty_fee: 12,
+    _shill_times: 0,
     ipfs_hash: Buffer.from('4f0b018a3b003b7c99f97427f410cafe5707ba18d28b13cd8bfa59e08e110380', 'hex')
 }
 const nft_id_not_exist = BigNumber.from(114514);
@@ -73,5 +91,8 @@ export default {
     edition_id_not_exist,
     issue_id_not_exist,
     overflow_price_value,
-    overflow_NFT_id_value
+    overflow_NFT_id_value,
+    publish_zero_first_sell_price,
+    publish_zero_shill_times,
+    publish_one_shill_times
 };
