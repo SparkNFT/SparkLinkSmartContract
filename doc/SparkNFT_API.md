@@ -21,11 +21,12 @@ Besides, `SparkNFT Smart Contract` is also a special ERC-721 NFT (attached a tre
   In the second progress, buyer need pay for this NFT's price to the owner of the NFT ID he inputs.
   And when some one mint NFT from new this NFT, the owner of its father NFT will get part of amount it sells. 
 - There are some slight differences at the behavior of `token transfer` function.
-
-
-## `Issue` data structure(abstract)
+  This token is integrated a price mechanism, if token's price is determined by owner, `transfer` function will check if the value of this transaction is equal price. 
 
 ## `Edition` data structure
+- 
+## `Issue` data structure(abstract)
+- To reduce gas costs due to storage, we storage 
 
 ## Function Briefing
 

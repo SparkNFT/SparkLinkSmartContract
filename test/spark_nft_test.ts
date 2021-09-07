@@ -32,7 +32,52 @@ describe("SparkNFT", function () {
   context('publish()', async () => {
 
     it('Should publish reject invalid parameters', async () => {
-
+      { 
+        let invalid_parameter = spark_constant.invalid_publish_royalty_fee;
+        let error_info = "SparkNFT: Royalty fee should less than 100.";
+        await expect(sparkNFT.publish(
+          invalid_parameter._first_sell_price, 
+          invalid_parameter._royalty_fee, 
+          invalid_parameter._shill_times, 
+          invalid_parameter.ipfs_hash
+        )).to.be.revertedWith(error_info);
+      }
+      {
+        let invalid_parameter = spark_constant.invalid_publish_royalty_fee_overflow;
+        await expect(sparkNFT.publish(
+          invalid_parameter._first_sell_price, 
+          invalid_parameter._royalty_fee, 
+          invalid_parameter._shill_times, 
+          invalid_parameter.ipfs_hash
+        )).to.be.reverted;
+      }      
+      {
+        let invalid_parameter = spark_constant.invalid_publish_shill_times_overflow;
+        await expect(sparkNFT.publish(
+          invalid_parameter._first_sell_price, 
+          invalid_parameter._royalty_fee, 
+          invalid_parameter._shill_times, 
+          invalid_parameter.ipfs_hash
+        )).to.be.reverted;
+      }      
+      {
+        let invalid_parameter = spark_constant.invalid_publish_price_overflow;
+        await expect(sparkNFT.publish(
+          invalid_parameter._first_sell_price, 
+          invalid_parameter._royalty_fee, 
+          invalid_parameter._shill_times, 
+          invalid_parameter.ipfs_hash
+        )).to.be.reverted;
+      }      
+      {
+        let invalid_parameter = spark_constant.invalid_publish_ipfs_hash_overflow;
+        await expect(sparkNFT.publish(
+          invalid_parameter._first_sell_price, 
+          invalid_parameter._royalty_fee, 
+          invalid_parameter._shill_times, 
+          invalid_parameter.ipfs_hash
+        )).to.be.reverted;
+      }
     });
     it('should publish an issue and emit event successfully', async () => {
       const event = await helper.publish(sparkNFT)
@@ -176,6 +221,9 @@ describe("SparkNFT", function () {
       }
       for (let i = loop_times-1; i >= 1; i -= 1) {
        expect(shill_prices[i].sub(shill_prices[i].mul(royalty_fee).div(100))).to.eq(await sparkNFT.getProfitByNFTId(nft_ids[i]));
+      }
+      for (let i = 0; i < loop_times; i += 1) {
+        expect(await sparkNFT.getEditionIdByNFTId(nft_ids[i])).to.eq(i+1);
       }
       claim_increases[0] = profits[0];
       for (let i = loop_times-1; i >= 0; i -= 1) {
