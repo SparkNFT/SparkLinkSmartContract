@@ -444,11 +444,53 @@ describe("SparkNFT", function () {
           null
         )))[0]
         const after_owner_balance = await ethers.provider.getBalance(accounts[i].address);
-        // console.log(i+ " claim_event.args.amount: " + claim_event.args.amount + " price_base.add(price_increase.mul(i)):" + price_base.add(price_increase.mul(i)))
         expect(claim_event.args.amount).to.eq(price_base.add(price_increase.mul(i)));
-        // expect(after_owner_balance.sub(before_owner_balance)).to.eq(price_base.add(price_increase.mul(i)));
+        expect(after_owner_balance.sub(before_owner_balance)).to.eq(price_base.add(price_increase.mul(i)));
       }
     })
+
+  //   it('should transfer give correct profit to seller and father NFT holder', async () => {
+  //     const owner = accounts[0];
+  //     const caller = accounts[1];
+  //     const base_account_index = 2;
+  //     let publish_event = await helper.publish(sparkNFT);
+  //     const root_nft_id = publish_event.args.rootNFTId;
+  //     const issue_id = await sparkNFT.getIssueIdByNFTId(root_nft_id);
+  //     const royalty_fee = await sparkNFT.getRoyaltyFeeByIssueId(issue_id);
+  //     let accept_shill_event = await helper.accept_shill(sparkNFT, accounts[2], root_nft_id);
+  //     let nft_id = accept_shill_event.args.tokenId;
+  //     const price_base = BigNumber.from(100);
+  //     const price_increase = BigNumber.from(11451);
+  //     const loop_times = 15;
+  //     await sparkNFT.connect(caller).claimProfit(root_nft_id);
+  //     for (let i = base_account_index; i < loop_times; i += 1) {
+  //       await sparkNFT.connect(accounts[i]).determinePriceAndApprove(nft_id, price_base.add(price_increase.mul(i)), accounts[i+1].address);
+  //       const before_owner_balance = await ethers.provider.getBalance(accounts[i].address);
+  //       const before_father_balance = await ethers.provider.getBalance(owner.address);
+  //       await sparkNFT.connect(accounts[i+1])["safeTransferFrom(address,address,uint256)"](
+  //         accounts[i].address,
+  //         accounts[i+1].address,
+  //         nft_id,
+  //         { value: price_base.add(price_increase.mul(i))}
+  //       );
+  //       let transfer_event = (await sparkNFT.queryFilter(sparkNFT.filters.Transfer(
+  //         accounts[i].address,
+  //         accounts[i+1].address,
+  //         nft_id
+  //       )))[0];
+  //       expect(transfer_event.args.from).to.eq(accounts[i].address);
+  //       expect(transfer_event.args.to).to.eq(accounts[i+1].address);
+  //       expect(transfer_event.args.tokenId).to.eq(nft_id);
+  //       let claim_event = (await sparkNFT.queryFilter(sparkNFT.filters.Claim(
+  //         nft_id,
+  //         accounts[i].address,
+  //         null
+  //       )))[0]
+  //       const after_father_balance = await ethers.provider.getBalance(owner.address);
+  //       const after_owner_balance = await ethers.provider.getBalance(accounts[i].address);
+  //       expect(claim_event.args.amount).to.eq(price_base.add(price_increase.mul(i)));
+  //     }
+  //   })
   });
 
   context('approve()', async () => {
