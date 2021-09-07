@@ -40,14 +40,35 @@ const invalid_publish_ipfs_hash_overflow = {
     _shill_times: 11,
     ipfs_hash: Buffer.from('4f0b018a3b003b7c99f97427f410cafe5707ba18d28b13cd8bfa59e08e11038011', 'hex')
 }
+const publish_one_hundred_royalty_fee = {
+    _first_sell_price: BigNumber.from(1000),
+    _royalty_fee: 100,
+    _shill_times: 12,
+    ipfs_hash: Buffer.from('4f0b018a3b003b7c99f97427f410cafe5707ba18d28b13cd8bfa59e08e110380', 'hex')
+}
+const publish_zero_royalty_fee = {
+    _first_sell_price: BigNumber.from(1000),
+    _royalty_fee: 100,
+    _shill_times: 12,
+    ipfs_hash: Buffer.from('4f0b018a3b003b7c99f97427f410cafe5707ba18d28b13cd8bfa59e08e110380', 'hex')
+}
+const nft_id_not_exisit = BigNumber.from(114514);
+const edition_id_not_exist = BigNumber.from(114514);
+const issue_id_not_exist = BigNumber.from(114514);
+
 const loss_ratio = 90;
 export default {
     airpod_ctor_parameters,
     default_hash_1,
     loss_ratio,
+    publish_one_hundred_royalty_fee,
+    publish_zero_royalty_fee,
     invalid_publish_royalty_fee,
     invalid_publish_royalty_fee_overflow,
     invalid_publish_shill_times_overflow,
     invalid_publish_ipfs_hash_overflow,
-    invalid_publish_price_overflow
+    invalid_publish_price_overflow,
+    nft_id_not_exisit,
+    edition_id_not_exist,
+    issue_id_not_exist
 };

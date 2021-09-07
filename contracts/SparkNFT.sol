@@ -146,7 +146,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     {
         require(isEditionExist(_NFT_id), "SparkNFT: This NFT is not exist.");
         require(editions_by_id[_NFT_id].remain_shill_times > 0, "SparkNFT: There is no remain shill times for this NFT.");
-        require(msg.value == editions_by_id[_NFT_id].shillPrice, "SparkNFT: not enought ETH");
+        require(msg.value == editions_by_id[_NFT_id].shillPrice, "SparkNFT: not enough ETH");
         _addProfit( _NFT_id, editions_by_id[_NFT_id].shillPrice);
         _mintNFT(_NFT_id, msg.sender);
         editions_by_id[_NFT_id].remain_shill_times -= 1;
@@ -478,11 +478,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * - `_price` The amount of `_token_addr` should be payed for `_NFT_id`
      */
 
-   
-    
-
-
-
     function _mintNFT(
         uint64 _NFT_id,
         address _owner
@@ -585,9 +580,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         _transfer(from, to, tokenId);
         require(_checkOnERC721Received(from, to, tokenId, _data), "SparkNFT: transfer to non ERC721Receiver implementer");
     }
-
-
-   
 
     /**
      * @dev Approve `to` to operate on `tokenId`

@@ -30,7 +30,6 @@ describe("SparkNFT", function () {
   });
 
   context('publish()', async () => {
-
     it('Should publish reject invalid parameters', async () => {
       { 
         let invalid_parameter = spark_constant.invalid_publish_royalty_fee;
@@ -97,7 +96,39 @@ describe("SparkNFT", function () {
 
   context('acceptShill()', async () => {
     it('Should acceptShill reject invalid parameters', async () => {
-
+      {
+        let other = accounts[1];
+        let error_info = "SparkNFT: This NFT is not exist.";
+        let invalid_parameter = spark_constant.nft_id_not_exisit;
+        await expect(sparkNFT.connect(other).acceptShill(invalid_parameter)
+        ).to.be.revertedWith(error_info);
+      }
+    });
+    it('Should acceptShill reject not enough ETH', async () => {
+      {
+        let other = accounts[1];
+        const publish_event = await helper.publish(sparkNFT);
+        let error_info = "SparkNFT: not enough ETH";
+        const root_nft_id = publish_event.args.rootNFTId;
+        await expect(
+          sparkNFT.connect(other).acceptShill(root_nft_id, {value: 0})
+        ).to.be.revertedWith(error_info);
+      }
+    });
+    it('Should acceptShill reject no remain shill times', async () => {
+      {
+        let other = accounts[1];
+        let loop_times = 10;
+        const publish_event = await helper.publish(sparkNFT);
+        let error_info = "SparkNFT: There is no remain shill times for this NFT.";
+        const root_nft_id = publish_event.args.rootNFTId;
+        for (let i = 0; i < loop_times; i += 1) {
+          await helper.accept_shill(sparkNFT, other, root_nft_id);
+        }
+        await expect(
+          sparkNFT.connect(other).acceptShill(root_nft_id, {value: 100})
+        ).to.be.revertedWith(error_info);
+      }
     });
     it('should mint a NFT from an issue', async (): Promise<void> => {
       const other = accounts[1];
