@@ -55,7 +55,8 @@ const publish_zero_royalty_fee = {
 const nft_id_not_exist = BigNumber.from(114514);
 const edition_id_not_exist = BigNumber.from(114514);
 const issue_id_not_exist = BigNumber.from(114514);
-
+const overflow_price_value = BigNumber.from("0x1234567890123456789012345678901211234");
+const overflow_NFT_id_value = BigNumber.from("0x1234567890123456789012");
 const loss_ratio = 90;
 export default {
     airpod_ctor_parameters,
@@ -70,5 +71,7 @@ export default {
     invalid_publish_price_overflow,
     nft_id_not_exist,
     edition_id_not_exist,
-    issue_id_not_exist
+    issue_id_not_exist,
+    overflow_price_value,
+    overflow_NFT_id_value
 };

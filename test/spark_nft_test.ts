@@ -242,7 +242,7 @@ describe("SparkNFT", function () {
       let claim_increases:BigNumber[] = new Array(loop_times+1);
       shill_prices.push(BigNumber.from(100));
       const publish_event = await helper.publish(sparkNFT, shill_prices[0]);
-      // 数组长度为loop_times+1
+      // length is loop_times+1
       nft_ids.push(publish_event.args.rootNFTId);
       let issue_id = await sparkNFT.getIssueIdByNFTId(nft_ids[0]);
       let royalty_fee = await sparkNFT.getRoyaltyFeeByIssueId(issue_id);
@@ -280,9 +280,30 @@ describe("SparkNFT", function () {
     it('Should determinePriceAndApprove reject none exist Edition', async () => {
       {
         let other = accounts[1];
+        let caller = accounts[2];
+        let error_info = "SparkNFT: NFT's price should set by owner of it.";
+        const publish_event = await helper.publish(sparkNFT);
+        let root_nft_id = publish_event.args.rootNFTId;
+        await expect(sparkNFT.connect(caller).determinePriceAndApprove(root_nft_id, BigNumber.from(12), other.address)
+        ).to.be.revertedWith(error_info);
+      }
+    });
+    it('Should determinePriceAndApprove reject none exist Edition', async () => {
+      {
+        let other = accounts[1];
         let error_info = "SparkNFT: The NFT you want to buy is not exist.";
         let invalid_parameter = spark_constant.nft_id_not_exist;
         await expect(sparkNFT.connect(other).determinePriceAndApprove(invalid_parameter, BigNumber.from(12), owner.address)
+        ).to.be.revertedWith(error_info);
+      }
+    });
+    it('Should determinePriceAndApprove reject approve to owner', async () => {
+      {
+        let other = accounts[1];
+        let error_info = "SparkNFT: approval to current owner";
+        const publish_event = await helper.publish(sparkNFT);
+        let root_nft_id = publish_event.args.rootNFTId;
+        await expect(sparkNFT.connect(owner).determinePriceAndApprove(root_nft_id, BigNumber.from(12), owner.address)
         ).to.be.revertedWith(error_info);
       }
     });
@@ -295,15 +316,42 @@ describe("SparkNFT", function () {
       await sparkNFT
         .connect(owner)
         .determinePriceAndApprove(nft_id, transfer_price, receiver.address);
-
       const event = (await sparkNFT.queryFilter(sparkNFT.filters.DeterminePriceAndApprove()))[0];
       expect(event.args.transfer_price).to.eq(transfer_price);
       expect(event.args.to).to.eq(receiver.address);
     });
+
+    it('should determine and approve several times work', async () => {
+      const owner = accounts[1];
+      const receiver = accounts[2];
+      const transfer_event = await helper.accept_shill(sparkNFT, owner);
+      const nft_id = transfer_event.args.tokenId;
+      const transfer_price = BigNumber.from(100);
+      let loop_times = 5;
+      for (let i = 0; i < loop_times; i += 1) {
+        await sparkNFT
+          .connect(owner)
+          .determinePriceAndApprove(nft_id, transfer_price.mul(i), accounts[i+3].address);
+        const event = (await sparkNFT.queryFilter(sparkNFT.filters.DeterminePriceAndApprove()))[i];
+        expect(event.args.NFT_id).to.eq(nft_id);
+        expect(event.args.transfer_price).to.eq(transfer_price.mul(i));
+        expect(event.args.to).to.eq(accounts[i+3].address);
+      }
+    });
   });
 
   context('determinePrice()', async () => {
-    it('should determine a price and approve', async () => {
+    it('Should determinePrice reject none exist Edition', async () => {
+      {
+        let other = accounts[1];
+        let error_info = "SparkNFT: The NFT you want to buy is not exist.";
+        let invalid_parameter = spark_constant.nft_id_not_exist;
+        await expect(sparkNFT.connect(other).determinePrice(invalid_parameter, BigNumber.from(12))
+        ).to.be.revertedWith(error_info);
+      }
+    });
+
+    it('should determine a price', async () => {
       const owner = accounts[1];
       const receiver = accounts[2];
       const transfer_event = await helper.accept_shill(sparkNFT, owner);
@@ -312,10 +360,26 @@ describe("SparkNFT", function () {
       await sparkNFT
         .connect(owner)
         .determinePrice(nft_id, transfer_price);
-
       const event = (await sparkNFT.queryFilter(sparkNFT.filters.DeterminePrice()))[0];
       expect(event.args.NFT_id).to.eq(nft_id);
       expect(event.args.transfer_price).to.eq(transfer_price);
+    });
+
+    it('should determine a price several times work', async () => {
+      const owner = accounts[1];
+      const receiver = accounts[2];
+      const transfer_event = await helper.accept_shill(sparkNFT, owner);
+      const nft_id = transfer_event.args.tokenId;
+      const transfer_price = BigNumber.from(100);
+      let loop_times = 5;
+      for (let i = 0; i < loop_times; i += 1) {
+        await sparkNFT
+          .connect(owner)
+          .determinePrice(nft_id, transfer_price.mul(i));
+        const event = (await sparkNFT.queryFilter(sparkNFT.filters.DeterminePrice()))[i];
+        expect(event.args.NFT_id).to.eq(nft_id);
+        expect(event.args.transfer_price).to.eq(transfer_price.mul(i));
+      }
     });
   });
 
@@ -356,7 +420,8 @@ describe("SparkNFT", function () {
       await sparkNFT.connect(owner).approve(other.address, root_nft_id);
       expect(other.address).to.eq(await sparkNFT.getApproved(root_nft_id));
     })
-  })  
+  });
+
   context('setApprovalForAll()', async () => {
     it("should approve all an NFT from owner", async () => {
       let publish_event = await helper.publish(sparkNFT);

@@ -202,7 +202,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         public 
     {
         require(isEditionExist(_NFT_id), "SparkNFT: The NFT you want to buy is not exist.");
-        require(msg.sender == ownerOf(_NFT_id), "SparkNFT: NFT's price should set by onwer of it.");
+        require(msg.sender == ownerOf(_NFT_id), "SparkNFT: NFT's price should set by owner of it.");
         editions_by_id[_NFT_id].transfer_price = _price;
         emit DeterminePrice(_NFT_id, _price);
     }
