@@ -97,17 +97,14 @@ describe("SparkNFT", function () {
 
   context('acceptShill()', async () => {
     it('Should acceptShill reject invalid parameters', async () => {
-      {
         let other = accounts[1];
         let error_info = "SparkNFT: This NFT is not exist.";
         let invalid_parameter = spark_constant.nft_id_not_exist;
         await expect(sparkNFT.connect(other).acceptShill(invalid_parameter)
         ).to.be.revertedWith(error_info);
-      }
     });
 
     it('Should acceptShill reject not enough ETH', async () => {
-      {
         let other = accounts[1];
         const publish_event = await helper.publish(sparkNFT);
         let error_info = "SparkNFT: not enough ETH";
@@ -115,11 +112,9 @@ describe("SparkNFT", function () {
         await expect(
           sparkNFT.connect(other).acceptShill(root_nft_id, {value: 0})
         ).to.be.revertedWith(error_info);
-      }
     });
 
     it('Should acceptShill reject no remain shill times', async () => {
-      {
         let other = accounts[1];
         let loop_times = 10;
         const publish_event = await helper.publish(sparkNFT);
@@ -131,7 +126,6 @@ describe("SparkNFT", function () {
         await expect(
           sparkNFT.connect(other).acceptShill(root_nft_id, {value: 100})
         ).to.be.revertedWith(error_info);
-      }
     });
 
     it('should mint a NFT from an issue', async (): Promise<void> => {
@@ -218,7 +212,6 @@ describe("SparkNFT", function () {
       expect(claim_event.args.NFT_id).to.eq(root_nft_id);
       expect(claim_event.args.receiver).to.eq(owner.address);
       expect(claim_event.args.amount).to.eq(await sparkNFT.getShillPriceByNFTId(root_nft_id));
-      
     });
 
     it("should transfer ETH from contract balance to owner balance", async (): Promise<void> => {
@@ -253,7 +246,6 @@ describe("SparkNFT", function () {
       nft_ids.push(publish_event.args.rootNFTId);
       let issue_id = await sparkNFT.getIssueIdByNFTId(nft_ids[0]);
       let royalty_fee = await sparkNFT.getRoyaltyFeeByIssueId(issue_id);
-      let sub_royalty_fee = (BigNumber.from(100)).sub(royalty_fee);
       for (let i = 0; i < loop_times; i += 1){
         nft_ids.push((await helper.accept_shill(sparkNFT, accounts[base_account_index+i], nft_ids[i], shill_prices[i])).args.tokenId);
         shill_prices.push(shill_prices[i].mul(spark_constant.loss_ratio).div(100));
@@ -452,12 +444,12 @@ describe("SparkNFT", function () {
       let owner = accounts[0];
       let other = accounts[1];
       await sparkNFT.connect(owner).approve(other.address, root_nft_id);
-      expect(other.address).to.eq(await sparkNFT.getApproved(root_nft_id));
+      const event = (await sparkNFT.queryFilter(sparkNFT.filters.Approval()))[0];
+      expect(other.address).to.eq(event.args.approved);
     })
   });
 
   context('setApprovalForAll()', async () => {
-
     it('Should setApprovalForAll reject approve to caller', async () => {
       {
         await helper.publish(sparkNFT);
@@ -486,4 +478,67 @@ describe("SparkNFT", function () {
     })
   })
 
+  context('getApproved()', async () => {
+    it("should getApproved correct approve address", async () => {
+      let publish_event = await helper.publish(sparkNFT);
+      let root_nft_id = publish_event.args.rootNFTId;
+      let owner = accounts[0];
+      let other = accounts[1];
+      await sparkNFT.connect(owner).approve(other.address, root_nft_id);
+      expect(other.address).to.eq(await sparkNFT.getApproved(root_nft_id));
+    })
+
+    it("should getApproved reject none exist token", async () => {
+      let invalid_parameter = spark_constant.nft_id_not_exist;
+      let error_info = "SparkNFT: approved query for nonexistent token";
+      await expect(sparkNFT.getApproved(invalid_parameter)).to.be.revertedWith(error_info);
+    })
+
+    
+    it("should getApproved reject overflow tokenId", async () => {
+      let invalid_parameter = spark_constant.overflow_NFT_id_value;
+      let error_info = "SparkNFT: value doesn't fit in 64 bits";
+      await expect(sparkNFT.getApproved(invalid_parameter)).to.be.revertedWith(error_info);
+    })
+  })
+
+  context('getFatherByNFTId()', async () => {
+    it("should getFatherByNFTId reject none exist token", async () => {
+      let invalid_parameter = spark_constant.nft_id_not_exist;
+      let error_info = "SparkNFT: Edition is not exist.";
+      await expect(sparkNFT.getFatherByNFTId(invalid_parameter)).to.be.revertedWith(error_info);
+    })
+  })
+
+  context('getTransferPriceByNFTId()', async () => {
+    it("should getTransferPriceByNFTId reject none exist token", async () => {
+      let invalid_parameter = spark_constant.nft_id_not_exist;
+      let error_info = "SparkNFT: Edition is not exist.";
+      await expect(sparkNFT.getTransferPriceByNFTId(invalid_parameter)).to.be.revertedWith(error_info);
+    })
+  })
+
+  context('getShillPriceByNFTId()', async () => {
+    it("should getShillPriceByNFTId reject none exist token", async () => {
+      let invalid_parameter = spark_constant.nft_id_not_exist;
+      let error_info = "SparkNFT: Edition is not exist.";
+      await expect(sparkNFT.getShillPriceByNFTId(invalid_parameter)).to.be.revertedWith(error_info);
+    })
+  })
+
+  context('getRemainShillTimesByNFTId()', async () => {
+    it("should getRemainShillTimesByNFTId reject none exist token", async () => {
+      let invalid_parameter = spark_constant.nft_id_not_exist;
+      let error_info = "SparkNFT: Edition is not exist.";
+      await expect(sparkNFT.getRemainShillTimesByNFTId(invalid_parameter)).to.be.revertedWith(error_info);
+    })
+  })
+
+  context('getDepthByNFTId()', async () => {
+    it("should getDepthByNFTId reject none exist token", async () => {
+      let invalid_parameter = spark_constant.nft_id_not_exist;
+      let error_info = "SparkNFT: Edition is not exist.";
+      await expect(sparkNFT.getDepthByNFTId(invalid_parameter)).to.be.revertedWith(error_info);
+    })
+  })
 });
