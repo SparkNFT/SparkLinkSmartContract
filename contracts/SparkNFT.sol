@@ -15,71 +15,74 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     using Address for address;
     using Counters for Counters.Counter;
     Counters.Counter private _issueIds;
-    // 由于时间关系先写中文注释
-    // Issue 用于存储一系列的NFT，他们对应同一个URI，以及一系列相同的属性，在结构体中存储
-    // 重要的有royalty_fee 用于存储手续费抽成比例
-    // base_royaltyfee 当按照比例计算的手续费小于这个值的时候，取用这个值
-    // 以这样的方式增大其传播性，同时使得上层的NFT具备价值
-    // shill_times 代表这个issue中的一个NFT最多能够产出多少份子NFT
-    // total_amount 这个issue总共产出了多少份NFT，同时用于新产出的NFT标号，标号从1开始
-    // issue结构体删去，rootNFT的father_id中拼接存储了royaltyfee，shilltimes与total_amount
-    // 位置分别在:
-    // 0~31 total_amount
-    // 48~56 shilltimes
-    // 57~63 royalty_fee
-    // 存储NFT相关信息的结构体
-    // father_id存储它父节点NFT的id
-    // transfer_price 在决定出售的时候设定，买家调起transferFrom付款并转移
-    // shillPrice存储从这个子节点mint出新的NFT的价格是多少
-    // 此处可以优化，并不需要每一个节点都去存一个，只需要一层存一个就可以了，但是需要NFT_id调整编号的方式与节点在树上的位置强相关
-    // is_on_sale 在卖家决定出售的时候将其设置成true，交易完成时回归false，出厂默认为false
-    // remain_shill_times 记录该NFT剩余可以产生的NFT
+    /*
+    Abstract struct Issue {
+        uint8 royalty_fee;
+        uint8 shilltimes;
+        uint32 total_amount;
+    }
+    This structure records some common attributes of a series of NFTs:
+        - `royalty_fee`: the proportion of royaltyes
+        - `shilltimes`: the number of times a single NFT can been shared
+        - `total_amount`: the total number of NFTs in the series
+    To reduce gas cost, this structure is actually stored in the `father_id` attibute of root NFT
+        - 0~31  `total_amount`
+        - 48~56 `shilltimes`
+        - 57~63 `total_amount`
+    */
 
     struct Edition {
-        // Information used to decribe an NFT.
-        // uint64 NFT_id;
-        // 这个地方可以优化成editionid
+        // This structure stores NFT related information:
+        //  - `father_id`: For root NFT it stores issue abstract sturcture
+        //                 For other NFTs its stores the NFT Id of which NFT it `acceptShill` from
+        // - `shillPrice`: The price should be paid when others `accpetShill` from this NFT
+        // - remain_shill_times: The initial value is the shilltimes of the issue it belongs to
+        //                       When others `acceptShill` from this NFT, it will subtract one until its value is 0  
+        // - `owner`: record the owner of this NFT
+        // - `ipfs_hash`: IPFS hash value of the URI where this NTF's metadata stores
+        // - `transfer_price`: The initial value is zero
+        //                   Set by `determinePrice` or `determinePriceAndApprove` before `transferFrom`
+        //                   It will be checked wether equal to msg.value when `transferFrom` is called
+        //                   After `transferFrom` this value will be set to zero
+        // - `profit`: record the profit owner can claim (include royalty fee it should conduct to its father NFT)
         uint64 father_id;
-        // Index of this NFT.
         uint128 shillPrice;
-        // The price of the NFT in the transaction is determined before the transaction.
         uint8 remain_shill_times;
         address owner;
         bytes32 ipfs_hash;
         uint128 transfer_price;
         uint128 profit;
-        // royalty_fee for every transfer expect from or to exclude address, max is 100;
     }
-    mapping (uint64 => Edition) private editions_by_id;
 
-    // 确定价格成功后的事件
+    // Emit when `determinePrice` success
     event DeterminePrice(
         uint64 indexed NFT_id,
         uint128 transfer_price
     );
 
-    // 确定价格的同时approve买家可以操作owner的NFT
+    // Emit when `determinePriceAndApprove` success
     event DeterminePriceAndApprove(
         uint64 indexed NFT_id,
         uint128 transfer_price,
         address indexed to
     );
 
-    // 除上述变量外，该事件还返回根节点的NFTId
+    // Emit when `publish` success
+    // - `rootNFTId`: Record the Id of root NFT given to publisher 
     event Publish(
 	    uint32 indexed issue_id,
         address indexed publisher,
         uint64 rootNFTId
     );
 
-    // 获取自己的收益成功
+    // Emit when claimProfit success
+    //- `amount`: Record the actual amount owner of this NFT received (profit - profit*royalty_fee/100)
     event Claim(
         uint64 indexed NFT_id,
         address indexed receiver,
         uint128 amount
     );
 
-    // Optional mapping for token URIs
     //----------------------------------------------------------------------------------------------------
     /**
      * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
@@ -89,12 +92,21 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         _symbol = "SparkNFT";
     } 
     
-    // publish函数分为这样几个部分
-    // 首先检验传入的参数是否正确，是否出现了不符合逻辑的上溢现象
-    // 然后获取issueid
-    // 接下来调用私有函数去把对应的变量赋值
-    // 初始化根节点NFT
-    // 触发事件，将数据上到log中
+   /**
+     * @dev Create a issue and mint a root NFT for buyer acceptShill from
+     *
+     * Requirements:
+     *
+     * - `_first_sell_price`: The price should be paid when others `accpetShill` from this NFT
+     * - `_royalty_fee`: The proportion of royaltyes, it represents the ratio of the father NFT's profit from the child NFT
+     *                   Its value should <= 100
+     * - `_shill_times`: the number of times a single NFT can been shared
+     *                   Its value should <= 255
+     * - `_ipfs_hash`: IPFS hash value of the URI where this NTF's metadata stores
+     *
+     * Emits a {Publish} event.
+     * - Emitted {Publish} event contains root NFT id.
+     */
     function publish(
         uint128 _first_sell_price,
         uint8 _royalty_fee,
@@ -131,13 +143,16 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         );
     }
 
-    // 由于存在loss ratio 我希望mint的时候始终按照比例收税
-    // 接受shill的函数，也就是mint新的NFT
-    // 传入参数是新的NFT的父节点的NFTid
-    // 首先还是检查参数是否正确，同时加入判断以太坊是否够用的检测
-    // 如果是根节点就不进行手续费扣款
-    // 接下来mintNFT
-    // 最后触发事件
+    /**
+     * @dev Buy a child NFT from the _NFT_id buyer input
+     *
+     * Requirements:
+     *
+     * - `_NFT_id`: _NFT_id the father NFT id buyer mint NFT from
+     *              remain shill times of the NFT_id you input should greater than 0
+     * Emits a {Ttansfer} event.
+     * - Emitted {Transfer} event from 0x0 address to msg.sender, contain new NFT id.
+     */
     function acceptShill(
         uint64 _NFT_id
     ) 
@@ -146,15 +161,28 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     {
         require(isEditionExist(_NFT_id), "SparkNFT: This NFT is not exist.");
         require(editions_by_id[_NFT_id].remain_shill_times > 0, "SparkNFT: There is no remain shill times for this NFT.");
-        require(msg.value == editions_by_id[_NFT_id].shillPrice, "SparkNFT: not enough ETH");
+        require(msg.value == editions_by_id[_NFT_id].shillPrice, "SparkNFT: incorrect ETH");
         _addProfit( _NFT_id, editions_by_id[_NFT_id].shillPrice);
-        _mintNFT(_NFT_id, msg.sender);
         editions_by_id[_NFT_id].remain_shill_times -= 1;
+        _mintNFT(_NFT_id, msg.sender);
         if (editions_by_id[_NFT_id].remain_shill_times == 0) {
             _mintNFT(_NFT_id, ownerOf(_NFT_id));
         }
     }
 
+    /**
+     * @dev Transfers `tokenId` token from `from` to `to`.
+     *      
+     * Requirements:
+     *
+     * - `from` cannot be the zero address.
+     * - `to` cannot be the zero address.
+     * - `tokenId` token must be owned by `from`.
+     * - If the caller is not `from`, it must be approved to move this token by either {approve} or {setApprovalForAll}.
+     * - If `transfer_price` has been set, caller should give same value in msg.sender.
+     * - Will call `claimProfit` before transfer and `transfer_price` will be set to zero after transfer. 
+     * Emits a {TransferAsset} events
+     */
     function transferFrom(address from, address to, uint256 tokenId) external payable override {
         _transfer(from, to, uint256toUint64(tokenId));
     }
@@ -166,7 +194,16 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata _data) external payable override {
         _safeTransfer(from, to, uint256toUint64(tokenId), _data);
     }
-
+    
+    /**
+     * @dev Claim profit from reward pool of NFT.
+     *      
+     * Requirements:
+     *
+     * - `_NFT_id`: The NFT id of NFT caller claim, the profit will give to its owner.
+     * - If its profit is zero the event {Claim} will not be emited.
+     * Emits a {Claim} events
+     */
     function claimProfit(uint64 _NFT_id) public {
         require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
         if (editions_by_id[_NFT_id].profit != 0) {
@@ -191,9 +228,9 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      *
      * Requirements:
      *
-     * - `_NFT_id` transferred token id.
-     * - `_token_addr` address of the token this transcation used, address(0) represent ETH.
-     * - `_price` The amount of `_token_addr` should be payed for `_NFT_id`
+     * - `_NFT_id`: transferred token id.
+     * - `_price`: The amount of ETH should be payed for `_NFT_id`
+     * Emits a {DeterminePrice} events
      */
     function determinePrice(
         uint64 _NFT_id,
@@ -207,6 +244,16 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         emit DeterminePrice(_NFT_id, _price);
     }
 
+    /**
+     * @dev Determine NFT price before transfer.
+     *
+     * Requirements:
+     *
+     * - `_NFT_id`: transferred token id.
+     * - `_price`: The amount of ETH should be payed for `_NFT_id`
+     * - `_to`: The account address `approve` to. 
+     * Emits a {DeterminePriceAndApprove} events
+     */
     function determinePriceAndApprove(
         uint64 _NFT_id,
         uint128 _price,
@@ -409,6 +456,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     mapping(uint64 => address) private _tokenApprovals;
     // Mapping from owner to operator approvals
     mapping(address => mapping(address => bool)) private _operatorApprovals;
+    mapping (uint64 => Edition) private editions_by_id;
 
     bytes constant private sha256MultiHash = hex"1220"; 
     bytes constant private ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';

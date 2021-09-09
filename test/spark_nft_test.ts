@@ -125,7 +125,7 @@ describe("SparkNFT", function () {
     it('Should acceptShill reject not enough ETH', async () => {
         let other = accounts[1];
         const publish_event = await helper.publish(sparkNFT);
-        let error_info = "SparkNFT: not enough ETH";
+        let error_info = "SparkNFT: incorrect ETH";
         const root_nft_id = publish_event.args.rootNFTId;
         await expect(
           sparkNFT.connect(other).acceptShill(root_nft_id, {value: 0})
