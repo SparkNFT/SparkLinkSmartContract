@@ -10,8 +10,8 @@ export default {
   async publish(
     contract: SparkNFT,
     first_sell_price = BigNumber.from(100),
-    royalty_fee = BigNumber.from(30),
-    shill_times = BigNumber.from(10),
+    royalty_fee =30,
+    shill_times = 10,
     ipfs_hash = Buffer.from(spark_constant.default_hash_1._hash, 'hex'),
   ) {
     await contract.publish(

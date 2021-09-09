@@ -67,7 +67,7 @@ const publish_zero_shill_times = {
 const publish_one_shill_times = {
     _first_sell_price: BigNumber.from(1121),
     _royalty_fee: 12,
-    _shill_times: 0,
+    _shill_times: 1,
     ipfs_hash: Buffer.from('4f0b018a3b003b7c99f97427f410cafe5707ba18d28b13cd8bfa59e08e110380', 'hex')
 }
 const nft_id_not_exist = BigNumber.from(114514);

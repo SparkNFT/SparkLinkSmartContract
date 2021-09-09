@@ -33,6 +33,7 @@ describe("SparkNFT", function () {
 
   context('publish()', async () => {
     it('Should publish reject invalid parameters', async () => {
+      // should revert with no valid royalty fee
       { 
         let invalid_parameter = spark_constant.invalid_publish_royalty_fee;
         let error_info = "SparkNFT: Royalty fee should less than 100.";
@@ -43,6 +44,7 @@ describe("SparkNFT", function () {
           invalid_parameter.ipfs_hash
         )).to.be.revertedWith(error_info);
       }
+      // should revert with royalty fee overflow
       {
         let invalid_parameter = spark_constant.invalid_publish_royalty_fee_overflow;
         await expect(sparkNFT.publish(
@@ -51,7 +53,8 @@ describe("SparkNFT", function () {
           invalid_parameter._shill_times, 
           invalid_parameter.ipfs_hash
         )).to.be.reverted;
-      }      
+      }
+      // should revert with shill times overflow      
       {
         let invalid_parameter = spark_constant.invalid_publish_shill_times_overflow;
         await expect(sparkNFT.publish(
@@ -60,7 +63,8 @@ describe("SparkNFT", function () {
           invalid_parameter._shill_times, 
           invalid_parameter.ipfs_hash
         )).to.be.reverted;
-      }      
+      }
+      // should revert with first sell price overflow
       {
         let invalid_parameter = spark_constant.invalid_publish_price_overflow;
         await expect(sparkNFT.publish(
@@ -69,7 +73,8 @@ describe("SparkNFT", function () {
           invalid_parameter._shill_times, 
           invalid_parameter.ipfs_hash
         )).to.be.reverted;
-      }      
+      }
+      // should revert with ipfs hash overflow
       {
         let invalid_parameter = spark_constant.invalid_publish_ipfs_hash_overflow;
         await expect(sparkNFT.publish(
@@ -95,6 +100,17 @@ describe("SparkNFT", function () {
       expect(await sparkNFT.getTotalAmountByIssueId(issue_id)).to.eq(1);
       expect(await sparkNFT.getRemainShillTimesByNFTId(root_nft_id)).to.eq(10);
     });
+  });
+
+    
+  it('should work when shill times is zero', async (): Promise<void> => {
+    const other = accounts[1];
+    const special_parameters = spark_constant.publish_zero_shill_times;
+    const publish_event = await helper.publish(
+        sparkNFT, special_parameters._first_sell_price, special_parameters._royalty_fee ,special_parameters._shill_times , special_parameters.ipfs_hash);
+    const transfer_event = (await sparkNFT.queryFilter(sparkNFT.filters.Transfer(ethers.constants.AddressZero, owner.address, null)))[0];
+    expect(transfer_event.args.from).to.eq(ethers.constants.AddressZero);
+    expect(transfer_event.args.to).to.eq(owner.address);
   });
 
   context('acceptShill()', async () => {
@@ -168,6 +184,57 @@ describe("SparkNFT", function () {
       expect(transfer_event.args.from).to.eq(ethers.constants.AddressZero);
       expect(transfer_event.args.to).to.eq(owner.address);
     });
+
+    it('should work when first sell price is zero', async (): Promise<void> => {
+      const other = accounts[1];
+      const special_parameters = spark_constant.publish_zero_first_sell_price;
+      const publish_event = await helper.publish(
+          sparkNFT, special_parameters._first_sell_price, special_parameters._royalty_fee ,special_parameters._shill_times , special_parameters.ipfs_hash);
+      const root_nft_id = publish_event.args.rootNFTId;
+      const issue_id = await sparkNFT.getIssueIdByNFTId(root_nft_id);
+      const shill_price = await sparkNFT.getShillPriceByNFTId(root_nft_id);
+      const shill_times = await sparkNFT.getShillTimesByIssueId(issue_id);
+      for (let i = 1; i < shill_times; i +=1) {
+        await helper.accept_shill(sparkNFT, other, root_nft_id, shill_price);
+      }
+      await sparkNFT.connect(other).acceptShill(root_nft_id, { value: 0 })
+      const transfer_event = (await sparkNFT.queryFilter(sparkNFT.filters.Transfer(ethers.constants.AddressZero, owner.address, null)))[0];
+      expect(transfer_event.args.from).to.eq(ethers.constants.AddressZero);
+      expect(transfer_event.args.to).to.eq(owner.address);
+    });    
+    
+    it('should work when royalty fee is zero', async (): Promise<void> => {
+      const other = accounts[1];
+      const special_parameters = spark_constant.publish_zero_royalty_fee;
+      const publish_event = await helper.publish(
+          sparkNFT, special_parameters._first_sell_price, special_parameters._royalty_fee ,special_parameters._shill_times , special_parameters.ipfs_hash);
+      const root_nft_id = publish_event.args.rootNFTId;
+      const issue_id = await sparkNFT.getIssueIdByNFTId(root_nft_id);
+      const shill_price = await sparkNFT.getShillPriceByNFTId(root_nft_id);
+      const shill_times = await sparkNFT.getShillTimesByIssueId(issue_id);
+      for (let i = 1; i < shill_times; i +=1) {
+        await helper.accept_shill(sparkNFT, other, root_nft_id, shill_price);
+      }
+      await sparkNFT.connect(other).acceptShill(root_nft_id, { value: shill_price })
+      const transfer_event = (await sparkNFT.queryFilter(sparkNFT.filters.Transfer(ethers.constants.AddressZero, owner.address, null)))[0];
+      expect(transfer_event.args.from).to.eq(ethers.constants.AddressZero);
+      expect(transfer_event.args.to).to.eq(owner.address);
+    });    
+    
+    it('should work when shill times is one', async (): Promise<void> => {
+      const other = accounts[1];
+      const special_parameters = spark_constant.publish_one_shill_times;
+      const publish_event = await helper.publish(
+          sparkNFT, special_parameters._first_sell_price, special_parameters._royalty_fee ,special_parameters._shill_times , special_parameters.ipfs_hash);
+      const root_nft_id = publish_event.args.rootNFTId;
+      const issue_id = await sparkNFT.getIssueIdByNFTId(root_nft_id);
+      const shill_price = await sparkNFT.getShillPriceByNFTId(root_nft_id);
+      const shill_times = await sparkNFT.getShillTimesByIssueId(issue_id);
+      await sparkNFT.connect(other).acceptShill(root_nft_id, { value: shill_price })
+      const transfer_event = (await sparkNFT.queryFilter(sparkNFT.filters.Transfer(ethers.constants.AddressZero, owner.address, null)))[0];
+      expect(transfer_event.args.from).to.eq(ethers.constants.AddressZero);
+      expect(transfer_event.args.to).to.eq(owner.address);
+    }); 
 
     it('should shill_price decrease by loss ratio', async (): Promise<void> => {
       const loop_times = 17;
@@ -247,6 +314,52 @@ describe("SparkNFT", function () {
       // length is loop_times+1
       nft_ids.push(publish_event.args.rootNFTId);
       let issue_id = await sparkNFT.getIssueIdByNFTId(nft_ids[0]);
+      let royalty_fee = await sparkNFT.getRoyaltyFeeByIssueId(issue_id);
+      for (let i = 0; i < loop_times; i += 1){
+        nft_ids.push((await helper.accept_shill(sparkNFT, accounts[base_account_index+i], nft_ids[i], shill_prices[i])).args.tokenId);
+        shill_prices.push(shill_prices[i].mul(spark_constant.loss_ratio).div(100));
+      }
+      profits[loop_times] = BigNumber.from(0);
+      claim_increases[loop_times] = BigNumber.from(0);
+      profits[loop_times-1] = (await sparkNFT.getShillPriceByNFTId(nft_ids[loop_times-1]));
+      claim_increases[loop_times-1] = profits[loop_times-1].sub(profits[loop_times-1].mul(royalty_fee).div(100))
+      for (let i = loop_times-2; i >= 0; i -= 1){
+        profits[i] = profits[i+1].mul(royalty_fee).div(100).add(await sparkNFT.getShillPriceByNFTId(nft_ids[i]));
+        claim_increases[i] = profits[i].sub(profits[i].mul(royalty_fee).div(100));
+      }
+      for (let i = loop_times-1; i >= 1; i -= 1) {
+       expect(shill_prices[i].sub(shill_prices[i].mul(royalty_fee).div(100))).to.eq(await sparkNFT.getProfitByNFTId(nft_ids[i]));
+      }
+      for (let i = 0; i < loop_times; i += 1) {
+        expect(await sparkNFT.getEditionIdByNFTId(nft_ids[i])).to.eq(i+1);
+      }
+      claim_increases[0] = profits[0];
+      for (let i = loop_times-1; i >= 0; i -= 1) {
+        let before_balance = await ethers.provider.getBalance(await sparkNFT.ownerOf(nft_ids[i]));
+        let claim_event = await helper.claim_profit(sparkNFT, caller, nft_ids[i]);
+        let amount = claim_event.args.amount;
+        let after_balance = await ethers.provider.getBalance(await sparkNFT.ownerOf(nft_ids[i]));
+        expect(amount).to.eq(after_balance.sub(before_balance));
+        expect(claim_increases[i]).to.eq(amount);
+      }
+    }) 
+    
+    it("should profit spread from the bottom to the top when royalty fee is 100", async (): Promise<void> => {
+      const loop_times = 17;
+      const caller = accounts[1];
+      const base_account_index = 2;
+      let shill_prices:BigNumber[] = new Array;
+      let nft_ids:BigNumber[] = new Array;
+      let profits:BigNumber[] = new Array(loop_times+1);
+      let claim_increases:BigNumber[] = new Array(loop_times+1);
+      let special_parameters = spark_constant.publish_one_hundred_royalty_fee; 
+      const publish_event = await helper.publish(
+        sparkNFT, special_parameters._first_sell_price, special_parameters._royalty_fee ,special_parameters._shill_times , special_parameters.ipfs_hash);
+      // length is loop_times+1
+      nft_ids.push(publish_event.args.rootNFTId);
+      let issue_id = await sparkNFT.getIssueIdByNFTId(nft_ids[0]);   
+      let first_sell_price = await sparkNFT.getShillPriceByNFTId(publish_event.args.rootNFTId);
+      shill_prices.push(first_sell_price);
       let royalty_fee = await sparkNFT.getRoyaltyFeeByIssueId(issue_id);
       for (let i = 0; i < loop_times; i += 1){
         nft_ids.push((await helper.accept_shill(sparkNFT, accounts[base_account_index+i], nft_ids[i], shill_prices[i])).args.tokenId);
