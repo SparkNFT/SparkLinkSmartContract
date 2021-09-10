@@ -82,7 +82,17 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         address indexed receiver,
         uint128 amount
     );
+    // Emit when setURI success
+    event SetURI(
+        uint64 indexed NFT_id,
+        bytes32 old_URI,
+        bytes32 new_URI
+    );
 
+    event Label(
+        uint64 indexed NFT_id,
+        string content
+    );
     //----------------------------------------------------------------------------------------------------
     /**
      * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
@@ -226,6 +236,24 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         }
     }
 
+    /**
+     * @dev Set token URI.
+     *
+     * Requirements:
+     *
+     * - `_NFT_id`: transferred token id.
+     * - `ipfs_hash`: ipfs hash value of the URI will be set.
+     * Emits a {SetURI} events
+     */
+    function setURI(uint64 _NFT_id, bytes32 ipfs_hash) public {
+        require(ownerOf(_NFT_id) == msg.sender, "SparkNFT: Only owner can set token URI");
+        _setTokenURI(_NFT_id, ipfs_hash);
+    }
+
+    function label(uint64 _NFT_id, string memory content) public {
+        require(ownerOf(_NFT_id) == msg.sender, "SparkNFT: Only owner can label this NFT");
+        emit Label(_NFT_id, content);
+    }
     /**
      * @dev Determine NFT price before transfer.
      *
@@ -628,8 +656,9 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * - `tokenId` must exist.
      */
     function _setTokenURI(uint64 tokenId, bytes32 ipfs_hash) internal virtual {
-        require(isEditionExist(tokenId), "SparkNFT: URI set of nonexistent token");
+        bytes32 old_URI = editions_by_id[tokenId].ipfs_hash;
         editions_by_id[tokenId].ipfs_hash = ipfs_hash;
+        emit SetURI(tokenId, old_URI, ipfs_hash);
     }
     
      /**
