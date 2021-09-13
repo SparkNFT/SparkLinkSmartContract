@@ -86,6 +86,9 @@ const issue_id_not_exist = BigNumber.from(114514);
 const overflow_price_value = BigNumber.from("0x1234567890123456789012345678901211234");
 const overflow_NFT_id_value = BigNumber.from("0x1234567890123456789012");
 const overflow_ipfs_hash_value = Buffer.from('4f0b018a3b003b7c99f97427f410cafe5707ba18d28b13cd8bfa59e08e11038011', 'hex');
+const label1 = "huluwahuluwa yiketengshangqigegua"
+const label2 = "葫芦娃葫芦娃，一颗藤上七个瓜"
+const label3 = "伞兵UP"
 const loss_ratio = 90;
 export default {
     airpod_ctor_parameters,
@@ -108,5 +111,8 @@ export default {
     publish_zero_shill_times,
     publish_one_shill_times,
     hash_2,
-    hash_3
+    hash_3,
+    label1,
+    label2,
+    label3
 };

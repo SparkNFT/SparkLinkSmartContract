@@ -709,6 +709,43 @@ describe("SparkNFT", function () {
     })
   })
 
+  context("label()", async () => {
+    it("should label work and emit Label event", async () => {
+      const publish_event = await helper.publish(sparkNFT);
+      const tokenId = publish_event.args.rootNFTId;
+      const label = spark_constant.label1;
+      await sparkNFT.connect(owner).label(tokenId, label);
+      const label_event = (await sparkNFT.queryFilter(sparkNFT.filters.Label(tokenId, null)))[0];
+      expect(label_event.args.content).to.eq(label);
+    })
+    it("should label work and emit Label event with UTF8", async () => {
+      const publish_event = await helper.publish(sparkNFT);
+      const tokenId = publish_event.args.rootNFTId;
+      const label = spark_constant.label1;
+      await sparkNFT.connect(owner).label(tokenId, label);
+      const label_event = (await sparkNFT.queryFilter(sparkNFT.filters.Label(tokenId, null)))[0];
+      expect(label_event.args.content).to.eq(label);
+    })
+    it ("should label reverted with invalid Id", async () => {
+      const invalid_parameter = spark_constant.overflow_NFT_id_value;
+      const label = spark_constant.label1;
+      await expect(sparkNFT.connect(owner).label(invalid_parameter,label)).to.be.reverted;
+    })
+    it ("should label reverted with invalid Id", async () => {
+      const invalid_parameter = spark_constant.nft_id_not_exist;
+      const label = spark_constant.label1;
+      await expect(sparkNFT.connect(owner).label(invalid_parameter,label)).to.be.reverted;
+    })
+    it ("should setURI reverted with account not owner", async () => {
+      const caller = accounts[1];
+      const publish_event = await helper.publish(sparkNFT);
+      const tokenId = publish_event.args.rootNFTId;
+      const label = spark_constant.label1;
+      const error_info = "SparkNFT: Only owner can label this NFT";
+      await expect(sparkNFT.connect(caller).label(tokenId, label)).to.be.revertedWith(error_info);
+    })
+  })
+
   context('getApproved()', async () => {
     it("should getApproved correct approve address", async () => {
       let publish_event = await helper.publish(sparkNFT);
