@@ -762,7 +762,6 @@ describe("SparkNFT", function () {
       await expect(sparkNFT.getApproved(invalid_parameter)).to.be.revertedWith(error_info);
     })
 
-    
     it("should getApproved reject overflow tokenId", async () => {
       let invalid_parameter = spark_constant.overflow_NFT_id_value;
       let error_info = "SparkNFT: value doesn't fit in 64 bits";
@@ -775,6 +774,15 @@ describe("SparkNFT", function () {
       let invalid_parameter = spark_constant.nft_id_not_exist;
       let error_info = "SparkNFT: Edition is not exist.";
       await expect(sparkNFT.getFatherByNFTId(invalid_parameter)).to.be.revertedWith(error_info);
+    })
+
+    it("should getFatherByNFTId work", async () => {
+      const other = accounts[1];
+      const publish_event = await helper.publish(sparkNFT);
+      const root_nft_id = publish_event.args.rootNFTId;
+      const accept_shill_event = await helper.accept_shill(sparkNFT, other, root_nft_id);
+      const father_id = await sparkNFT.getFatherByNFTId(accept_shill_event.args.tokenId);
+      expect(father_id).to.eq(root_nft_id);
     })
   })
 
