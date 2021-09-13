@@ -692,6 +692,21 @@ describe("SparkNFT", function () {
       expect("0x"+ipfs_hash).to.eq(SetURI_event.args.new_URI);
       expect(await sparkNFT.tokenURI(tokenId)).to.eq(URI);
     })
+    it ("should setURI reverted with invalid Id", async () => {
+      const invalid_parameter = spark_constant.overflow_NFT_id_value;
+      await expect(sparkNFT.connect(owner).setURI(invalid_parameter, Buffer.from(spark_constant.hash_2._hash, "hex"))).to.be.reverted;
+    })
+    it ("should setURI reverted with invalid Id", async () => {
+      const invalid_parameter = spark_constant.nft_id_not_exist;
+      await expect(sparkNFT.connect(owner).setURI(invalid_parameter, Buffer.from(spark_constant.hash_2._hash, "hex"))).to.be.reverted;
+    })
+    it ("should setURI reverted with account not owner", async () => {
+      const caller = accounts[1];
+      const publish_event = await helper.publish(sparkNFT);
+      const tokenId = publish_event.args.rootNFTId;
+      const error_info = "SparkNFT: Only owner can set token URI";
+      await expect(sparkNFT.connect(caller).setURI(tokenId, Buffer.from(spark_constant.hash_2._hash, "hex"))).to.be.revertedWith(error_info);
+    })
   })
 
   context('getApproved()', async () => {
