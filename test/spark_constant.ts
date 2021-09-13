@@ -10,6 +10,16 @@ const default_hash_1 = {
     _URI: "https://ipfs.io/ipfs/QmTfCejgo2wTwqnDJs8Lu1pCNeCrCDuE4GAwkna93zdd7d"
 };
 
+const hash_2 = {
+    _hash: '5084d4dfd5da02f60cc01eab0b41cd28af321597c469881d612df4adaa2b3815',
+    _URI: "https://ipfs.io/ipfs/QmTkxoV1ZciKyFciWDueJDXv8bWRfD5R1YmmeMF6QojL6x"
+};
+
+const hash_3 = {
+    _hash: '55b38a82d49f814f34409e141d237aef5aee996364cbba94bae0f1abdad85173',
+    _URI: "https://ipfs.io/ipfs/QmU7C9hnDYnThfpCvX28bdzZpX8Dtyt8m7J6cUNfmBoN6E"
+};
+
 const invalid_publish_royalty_fee = {
     _first_sell_price: BigNumber.from(1000),
     _royalty_fee: 111,
@@ -94,5 +104,7 @@ export default {
     overflow_NFT_id_value,
     publish_zero_first_sell_price,
     publish_zero_shill_times,
-    publish_one_shill_times
+    publish_one_shill_times,
+    hash_2,
+    hash_3
 };

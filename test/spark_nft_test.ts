@@ -682,6 +682,18 @@ describe("SparkNFT", function () {
     })
   })
 
+  context('setURI()', async () => {
+    it("should setURI work", async () => {
+      const publish_event = await helper.publish(sparkNFT);
+      const tokenId = publish_event.args.rootNFTId;
+      const ipfs_hash = spark_constant.hash_2._hash;
+      const URI = spark_constant.hash_2._URI;
+      const SetURI_event = await helper.setURI(sparkNFT, owner, tokenId, ipfs_hash);
+      expect("0x"+ipfs_hash).to.eq(SetURI_event.args.new_URI);
+      expect(await sparkNFT.tokenURI(tokenId)).to.eq(URI);
+    })
+  })
+
   context('getApproved()', async () => {
     it("should getApproved correct approve address", async () => {
       let publish_event = await helper.publish(sparkNFT);

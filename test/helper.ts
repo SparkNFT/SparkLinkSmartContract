@@ -44,6 +44,11 @@ export default {
     await contract.connect(caller_account).claimProfit(NFT_id);
     const claim_event = (await contract.queryFilter(contract.filters.Claim(NFT_id, await contract.ownerOf(NFT_id), null)))[0];
     return claim_event;
-  }
+  },
 
+  async setURI(contract: SparkNFT, caller_acount: SignerWithAddress, NFT_id:BigNumber, ipfs_hash: String) {
+    await contract.connect(caller_acount).setURI(NFT_id, Buffer.from(ipfs_hash, 'hex'));
+    const SetURI_event = (await contract.queryFilter(contract.filters.SetURI(NFT_id, null, null)))[0];
+    return SetURI_event;
+  }
 }
