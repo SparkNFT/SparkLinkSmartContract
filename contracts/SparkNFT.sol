@@ -99,11 +99,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      */
     constructor() {
         _name = "SparkLink";
-<<<<<<< HEAD
         _symbol = "SPL";
-=======
-        _symbol = "SPL";
->>>>>>> 002dd31a5f9dba7e31fea21d2cc90be278983099
     } 
     
    /**
@@ -177,20 +173,12 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         external 
         payable 
     {
-<<<<<<< HEAD
-        require(isEditionExist(_NFT_id), "SparkNFT: This NFT is not exist.");
-        require(editions_by_id[_NFT_id].remain_shill_times > 0, "SparkNFT: There is no remain shill times for this NFT.");
-        require(msg.value == editions_by_id[_NFT_id].shillPrice, "SparkNFT: Incorrect Price");
-        _addProfit( _NFT_id, editions_by_id[_NFT_id].shillPrice);
-        editions_by_id[_NFT_id].remain_shill_times -= 1;
-=======
         require(isEditionExisting(_NFT_id), "SparkLink: This NFT does not exist");
         require(editions_by_id[_NFT_id].remaining_shill_times > 0, "SparkLink: There is no remaining shill time for this NFT");
         require(msg.value == editions_by_id[_NFT_id].shill_price, "SparkLink: Wrong price");
 
         _addProfit( _NFT_id, editions_by_id[_NFT_id].shill_price);
         editions_by_id[_NFT_id].remaining_shill_times -= 1;
->>>>>>> 002dd31a5f9dba7e31fea21d2cc90be278983099
         _mintNFT(_NFT_id, msg.sender);
         if (editions_by_id[_NFT_id].remaining_shill_times == 0)
             _mintNFT(_NFT_id, ownerOf(_NFT_id));
