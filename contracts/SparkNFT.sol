@@ -28,7 +28,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     To reduce gas cost, this structure is actually stored in the `father_id` attibute of root NFT
         - 0~31  `total_amount`
         - 48~56 `shilltimes`
-        - 57~63 `total_amount`
+        - 57~63 `royalty_fee`
     */
 
     struct Edition {
@@ -98,8 +98,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
      */
     constructor() {
-        _name = "SparkNFT";
-        _symbol = "SparkNFT";
+        _name = "SparkLink";
+        _symbol = "SL";
     } 
     
    /**
@@ -174,7 +174,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     {
         require(isEditionExist(_NFT_id), "SparkNFT: This NFT is not exist.");
         require(editions_by_id[_NFT_id].remain_shill_times > 0, "SparkNFT: There is no remain shill times for this NFT.");
-        require(msg.value == editions_by_id[_NFT_id].shillPrice, "SparkNFT: incorrect ETH");
+        require(msg.value == editions_by_id[_NFT_id].shillPrice, "SparkNFT: Incorrect Price");
         _addProfit( _NFT_id, editions_by_id[_NFT_id].shillPrice);
         editions_by_id[_NFT_id].remain_shill_times -= 1;
         _mintNFT(_NFT_id, msg.sender);
@@ -783,10 +783,6 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
 
     function _addProfit(uint64 _NFT_id, uint128 _increase) internal {
         editions_by_id[_NFT_id].profit = editions_by_id[_NFT_id].profit+_increase;
-    }
-
-    function _subProfit(uint64 _NFT_id, uint128 _decrease) internal {
-        editions_by_id[_NFT_id].profit = editions_by_id[_NFT_id].profit-_decrease;
     }
 
     function _addTotalAmount(uint32 _issue_id) internal {
