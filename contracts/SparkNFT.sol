@@ -28,7 +28,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     To reduce gas cost, this structure is actually stored in the `father_id` attibute of root NFT
         - 0~31  `total_amount`
         - 48~56 `shilltimes`
-        - 57~63 `total_amount`
+        - 57~63 `royalty_fee`
     */
 
     struct Edition {
@@ -99,7 +99,11 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      */
     constructor() {
         _name = "SparkLink";
+<<<<<<< HEAD
         _symbol = "SPL";
+=======
+        _symbol = "SPL";
+>>>>>>> b6316a5 (delete some bug)
     } 
     
    /**
@@ -173,12 +177,20 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         external 
         payable 
     {
+<<<<<<< HEAD
         require(isEditionExisting(_NFT_id), "SparkLink: This NFT does not exist");
         require(editions_by_id[_NFT_id].remaining_shill_times > 0, "SparkLink: There is no remaining shill time for this NFT");
         require(msg.value == editions_by_id[_NFT_id].shill_price, "SparkLink: Wrong price");
 
         _addProfit( _NFT_id, editions_by_id[_NFT_id].shill_price);
         editions_by_id[_NFT_id].remaining_shill_times -= 1;
+=======
+        require(isEditionExist(_NFT_id), "SparkNFT: This NFT is not exist.");
+        require(editions_by_id[_NFT_id].remain_shill_times > 0, "SparkNFT: There is no remain shill times for this NFT.");
+        require(msg.value == editions_by_id[_NFT_id].shillPrice, "SparkNFT: Incorrect Price");
+        _addProfit( _NFT_id, editions_by_id[_NFT_id].shillPrice);
+        editions_by_id[_NFT_id].remain_shill_times -= 1;
+>>>>>>> b6316a5 (delete some bug)
         _mintNFT(_NFT_id, msg.sender);
         if (editions_by_id[_NFT_id].remaining_shill_times == 0)
             _mintNFT(_NFT_id, ownerOf(_NFT_id));
@@ -785,10 +797,6 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
 
     function _addProfit(uint64 _NFT_id, uint128 _increase) internal {
         editions_by_id[_NFT_id].profit = editions_by_id[_NFT_id].profit+_increase;
-    }
-
-    function _subProfit(uint64 _NFT_id, uint128 _decrease) internal {
-        editions_by_id[_NFT_id].profit = editions_by_id[_NFT_id].profit-_decrease;
     }
 
     function _addTotalAmount(uint32 _issue_id) internal {
