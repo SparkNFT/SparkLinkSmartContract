@@ -3,8 +3,11 @@
 ## Brief introduction
 
 SparkLink Smart Contract is an Ethereum smart contract.
+
 Authors can publish their virtual products (such as a book) on the blockchain and generate a `root NFT`.
+
 Others can buy a child `NFT3` from any existing father `NFT2`, holder of `NFT2` will get income.
+
 At the same time, holders of `NFT2`'s father `NFT3` will extract the amount corresponding to the proportion of royalties from the profit of the child `NFT2`.
 
 SparkLink Smart Contract can support these features:
