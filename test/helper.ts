@@ -1,14 +1,14 @@
 import { ethers } from "hardhat";
 import { BigNumber } from "@ethersproject/bignumber";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { SparkNFT } from "../artifacts/typechain/SparkNFT";
+import { SparkLink } from "../artifacts/typechain/SparkLink";
 import spark_constant from "./spark_constant";
 export default {
   /*
    * Returns Publish() event
    */
   async publish(
-    contract: SparkNFT,
+    contract: SparkLink,
     first_sell_price = BigNumber.from(100),
     royalty_fee =30,
     shill_times = 10,
@@ -28,7 +28,7 @@ export default {
    * Returns Mint() event.
    * will call publish() if nft_id is not given.
    */
-  async accept_shill(contract: SparkNFT, caller_account: SignerWithAddress, nft_id?: BigNumber, value?: BigNumber) {
+  async accept_shill(contract: SparkLink, caller_account: SignerWithAddress, nft_id?: BigNumber, value?: BigNumber) {
     if (!nft_id) {
       nft_id = (await this.publish(contract)).args.rootNFTId;
     }
@@ -40,13 +40,13 @@ export default {
     return transfer_event;
   },
 
-  async claim_profit(contract: SparkNFT, caller_account: SignerWithAddress, NFT_id: BigNumber) {
+  async claim_profit(contract: SparkLink, caller_account: SignerWithAddress, NFT_id: BigNumber) {
     await contract.connect(caller_account).claimProfit(NFT_id);
     const claim_event = (await contract.queryFilter(contract.filters.Claim(NFT_id, await contract.ownerOf(NFT_id), null)))[0];
     return claim_event;
   },
 
-  async setURI(contract: SparkNFT, caller_acount: SignerWithAddress, NFT_id:BigNumber, ipfs_hash: String) {
+  async setURI(contract: SparkLink, caller_acount: SignerWithAddress, NFT_id:BigNumber, ipfs_hash: String) {
     await contract.connect(caller_acount).setURI(NFT_id, Buffer.from(ipfs_hash, 'hex'));
     const SetURI_event = (await contract.queryFilter(contract.filters.SetURI(NFT_id, null, null)))[0];
     return SetURI_event;
