@@ -36,7 +36,7 @@ describe("SparkLink", function () {
       // should revert with no valid royalty fee
       { 
         let invalid_parameter = spark_constant.invalid_publish_royalty_fee;
-        let error_info = "SparkLink: Royalty fee should less than 100.";
+        let error_info = "SparkLink: Royalty fee should be <= 100%.";
         await expect(SparkLink.publish(
           invalid_parameter._first_sell_price, 
           invalid_parameter._royalty_fee, 
@@ -116,7 +116,7 @@ describe("SparkLink", function () {
   context('acceptShill()', async () => {
     it('Should acceptShill reject invalid parameters', async () => {
         let other = accounts[1];
-        let error_info = "SparkLink: This NFT is not exist.";
+        let error_info = "SparkLink: This NFT does not exist";
         let invalid_parameter = spark_constant.nft_id_not_exist;
         await expect(SparkLink.connect(other).acceptShill(invalid_parameter)
         ).to.be.revertedWith(error_info);
@@ -125,7 +125,7 @@ describe("SparkLink", function () {
     it('Should acceptShill reject not enough ETH', async () => {
         let other = accounts[1];
         const publish_event = await helper.publish(SparkLink);
-        let error_info = "SparkLink: incorrect ETH";
+        let error_info = "SparkLink: Wrong price";
         const root_nft_id = publish_event.args.rootNFTId;
         await expect(
           SparkLink.connect(other).acceptShill(root_nft_id, {value: 0})
@@ -136,7 +136,7 @@ describe("SparkLink", function () {
         let other = accounts[1];
         let loop_times = 10;
         const publish_event = await helper.publish(SparkLink);
-        let error_info = "SparkLink: There is no remain shill times for this NFT.";
+        let error_info = "SparkLink: There is no remaining shill time for this NFT";
         const root_nft_id = publish_event.args.rootNFTId;
         for (let i = 0; i < loop_times; i += 1) {
           await helper.accept_shill(SparkLink, other, root_nft_id);
@@ -263,7 +263,7 @@ describe("SparkLink", function () {
     it('Should claimProfit reject none exist Edition', async () => {
       {
         let other = accounts[1];
-        let error_info = "SparkLink: Edition is not exist.";
+        let error_info = "SparkLink: This edition does not exist";
         let invalid_parameter = spark_constant.nft_id_not_exist;
         await expect(SparkLink.connect(other).claimProfit(invalid_parameter)
         ).to.be.revertedWith(error_info);
@@ -395,7 +395,7 @@ describe("SparkLink", function () {
       {
         let other = accounts[1];
         let caller = accounts[2];
-        let error_info = "SparkLink: NFT's price should set by owner of it.";
+        let error_info = "SparkLink: Only owner can set the price";
         const publish_event = await helper.publish(SparkLink);
         let root_nft_id = publish_event.args.rootNFTId;
         await expect(SparkLink.connect(caller).determinePriceAndApprove(root_nft_id, BigNumber.from(12), other.address)
@@ -406,7 +406,7 @@ describe("SparkLink", function () {
     it('Should determinePriceAndApprove reject none exist Edition', async () => {
       {
         let other = accounts[1];
-        let error_info = "SparkLink: The NFT you want to buy is not exist.";
+        let error_info = "SparkLink: This NFT does not exist";
         let invalid_parameter = spark_constant.nft_id_not_exist;
         await expect(SparkLink.connect(other).determinePriceAndApprove(invalid_parameter, BigNumber.from(12), owner.address)
         ).to.be.revertedWith(error_info);
@@ -416,7 +416,7 @@ describe("SparkLink", function () {
     it('Should determinePriceAndApprove reject approve to owner', async () => {
       {
         let other = accounts[1];
-        let error_info = "SparkLink: approval to current owner";
+        let error_info = "SparkLink: Approval to current owner"
         const publish_event = await helper.publish(SparkLink);
         let root_nft_id = publish_event.args.rootNFTId;
         await expect(SparkLink.connect(owner).determinePriceAndApprove(root_nft_id, BigNumber.from(12), owner.address)
@@ -461,7 +461,7 @@ describe("SparkLink", function () {
     it('Should determinePrice reject none exist Edition', async () => {
       {
         let other = accounts[1];
-        let error_info = "SparkLink: The NFT you want to buy is not exist.";
+        let error_info = "SparkLink: This NFT does not exist";
         let invalid_parameter = spark_constant.nft_id_not_exist;
         await expect(SparkLink.connect(other).determinePrice(invalid_parameter, BigNumber.from(12))
         ).to.be.revertedWith(error_info);
@@ -622,7 +622,7 @@ describe("SparkLink", function () {
     it('Should approve reject approve to owner', async () => {
       {
         let other = accounts[1];
-        let error_info = "SparkLink: approval to current owner";
+        let error_info = "SparkLink: Approval to current owner";
         const publish_event = await helper.publish(SparkLink);
         let root_nft_id = publish_event.args.rootNFTId;
         await expect(SparkLink.connect(owner).approve(owner.address, root_nft_id)
@@ -634,7 +634,7 @@ describe("SparkLink", function () {
       {
         let other = accounts[1];
         let caller = accounts[3];
-        let error_info = "SparkLink: approve caller is not owner nor approved for all";
+        let error_info = "SparkLink: Approve caller is not owner nor approved for all";
         const publish_event = await helper.publish(SparkLink);
         let root_nft_id = publish_event.args.rootNFTId;
         await expect(SparkLink.connect(caller).approve(other.address, root_nft_id)
@@ -658,7 +658,7 @@ describe("SparkLink", function () {
       {
         await helper.publish(SparkLink);
         let owner = accounts[0];
-        let error_info = "SparkLink: approve to caller";
+        let error_info = "SparkLink: Approve to caller";
         await expect(SparkLink.connect(owner).setApprovalForAll(owner.address, true)).to.be.revertedWith(error_info);
       }
     });
@@ -704,7 +704,7 @@ describe("SparkLink", function () {
       const caller = accounts[1];
       const publish_event = await helper.publish(SparkLink);
       const tokenId = publish_event.args.rootNFTId;
-      const error_info = "SparkLink: Only owner can set token URI";
+      const error_info = "SparkLink: Only owner can set the token URI";
       await expect(SparkLink.connect(caller).setURI(tokenId, Buffer.from(spark_constant.hash_2._hash, "hex"))).to.be.revertedWith(error_info);
     })
   })
@@ -758,13 +758,13 @@ describe("SparkLink", function () {
 
     it("should getApproved reject none exist token", async () => {
       let invalid_parameter = spark_constant.nft_id_not_exist;
-      let error_info = "SparkLink: approved query for nonexistent token";
+      let error_info = "SparkLink: Approved query for nonexistent token";
       await expect(SparkLink.getApproved(invalid_parameter)).to.be.revertedWith(error_info);
     })
 
     it("should getApproved reject overflow tokenId", async () => {
       let invalid_parameter = spark_constant.overflow_NFT_id_value;
-      let error_info = "SparkLink: value doesn't fit in 64 bits";
+      let error_info = "SparkLink: Value doesn't fit in 64 bits";
       await expect(SparkLink.getApproved(invalid_parameter)).to.be.revertedWith(error_info);
     })
   })

@@ -1,8 +1,8 @@
 import { BigNumber } from "ethers";
 
 const airpod_ctor_parameters = {
-    _name: "SparkNFT",
-    _symbol: "SparkNFT"
+    _name: "SparkLink",
+    _symbol: "SPL"
 };
 
 const default_hash_1 = {
