@@ -61,21 +61,17 @@ Note:
 | Contract               | Address                |
 | ---------------------- | ---------------------- |
 | [Mainnet][mainnet]     | N/A                    |
-| [Ropsten][ropsten]     | [0xE0d6ac05][e0d6ac05] |
 | [BSC][bscscan]         | N/A                    |
-| [BSC-testnet][bsctest] | [0x5C05A8B8][5c05a8b8] |
-| [Matic][matic]         | N/A                    |
-| [Matic-mumbai][mumbai] | [0xeC6e8df4][ec6e8df4] |
+| [BSC-testnet][bsctest] | N/A                    |
+| [Matic][matic]         | [0x71872117][71872117] |
 
 [mainnet]: https://etherscan.io
 [ropsten]: https://ropsten.etherscan.io
 [bscscan]: https://bscscan.com
 [bsctest]: https://testnet.bscscan.com
-[matic]: https://matic.network
+[matic]: https://polygonscan.com
 [mumbai]: https://explorer-mumbai.maticvigil.com
-[e0d6ac05]: https://ropsten.etherscan.io/address/0xE0d6ac05893313710FaBd347BfbabdB28824767c
-[5c05a8b8]: https://testnet.bscscan.com/address/0x5C05A8B8dfFfA55B5AD2D37E888A06a685E2f467
-[ec6e8df4]: https://explorer-mumbai.maticvigil.com/address/0xeC6e8df429d2CE211040341117fd47795a774Ce1
+[71872117]: https://polygonscan.com/address/0x7187211744c67F8cE89fEAc63b85D8D17417bDfE
 
 ## Contribute
 

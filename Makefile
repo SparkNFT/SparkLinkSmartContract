@@ -19,5 +19,8 @@ check:
 rinkeby:
 	yarn hardhat run scripts/deploy.ts --network rinkeby
 
+matic:
+	yarn hardhat run scripts/deploy.ts --network matic
+
 flatten:
 	yarn hardhat flatten > publish.sol

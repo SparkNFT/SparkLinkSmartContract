@@ -17,12 +17,12 @@ async function main() {
   console.log("Deploying contracts with the account:", deployer.address);
   console.log("Account balance:", (await deployer.getBalance()).toString());
   // We get the contract to deploy
-  const SparkNFT = await ethers.getContractFactory("SparkNFT");
-  const sparkNFT = await SparkNFT.deploy();
+  const SparkLink = await ethers.getContractFactory("SparkLink");
+  const sparkLink = await SparkLink.deploy();
 
-  await sparkNFT.deployed();
+  await sparkLink.deployed();
 
-  console.log("sparkNFT deployed to:", sparkNFT.address);
+  console.log("SparkLink deployed to:", sparkLink.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
