@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 
-contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
+contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     using Address for address;
     using Counters for Counters.Counter;
     Counters.Counter private _issueIds;
@@ -35,8 +35,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         // This structure stores NFT related information:
         //  - `father_id`: For root NFT it stores issue abstract sturcture
         //                 For other NFTs its stores the NFT Id of which NFT it `acceptShill` from
-        // - `shillPrice`: The price should be paid when others `accpetShill` from this NFT
-        // - remain_shill_times: The initial value is the shilltimes of the issue it belongs to
+        // - `shill_price`: The price should be paid when others `accpetShill` from this NFT
+        // - remaining_shill_times: The initial value is the shilltimes of the issue it belongs to
         //                       When others `acceptShill` from this NFT, it will subtract one until its value is 0  
         // - `owner`: record the owner of this NFT
         // - `ipfs_hash`: IPFS hash value of the URI where this NTF's metadata stores
@@ -46,8 +46,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         //                   After `transferFrom` this value will be set to zero
         // - `profit`: record the profit owner can claim (include royalty fee it should conduct to its father NFT)
         uint64 father_id;
-        uint128 shillPrice;
-        uint8 remain_shill_times;
+        uint128 shill_price;
+        uint8 remaining_shill_times;
         address owner;
         bytes32 ipfs_hash;
         uint128 transfer_price;
@@ -98,8 +98,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
      */
     constructor() {
-        _name = "SparkNFT";
-        _symbol = "SparkNFT";
+        _name = "SparkLink";
+        _symbol = "SPL";
     } 
     
    /**
@@ -125,23 +125,24 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     ) 
         external 
     {
-        require(_royalty_fee <= 100, "SparkNFT: Royalty fee should less than 100.");
+        require(_royalty_fee <= 100, "SparkLink: Royalty fee should be <= 100%.");
         _issueIds.increment();
-        require(_issueIds.current() <= type(uint32).max, "SparkNFT: value doesn't fit in 32 bits.");
+        require(_issueIds.current() <= type(uint32).max, "SparkLink: Value doesn't fit in 32 bits.");
         uint32 new_issue_id = uint32(_issueIds.current());
         uint64 rootNFTId = getNftIdByEditionIdAndIssueId(new_issue_id, 1);
         require(
             _checkOnERC721Received(address(0), msg.sender, rootNFTId, ""),
-            "SparkNFT: transfer to non ERC721Receiver implementer"
+            "SparkLink: Transfer to non ERC721Receiver implementer"
         );
+
         Edition storage new_NFT = editions_by_id[rootNFTId];
         uint64 information;
         information = reWriteUint8InUint64(56, _royalty_fee, information);
         information = reWriteUint8InUint64(48, _shill_times, information);
         information += 1;
         new_NFT.father_id = information;
-        new_NFT.remain_shill_times = _shill_times;
-        new_NFT.shillPrice = _first_sell_price;
+        new_NFT.remaining_shill_times = _shill_times;
+        new_NFT.shill_price = _first_sell_price;
         new_NFT.owner = msg.sender;
         new_NFT.ipfs_hash = _ipfs_hash;
         _balances[msg.sender] += 1;
@@ -172,15 +173,15 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         external 
         payable 
     {
-        require(isEditionExist(_NFT_id), "SparkNFT: This NFT is not exist.");
-        require(editions_by_id[_NFT_id].remain_shill_times > 0, "SparkNFT: There is no remain shill times for this NFT.");
-        require(msg.value == editions_by_id[_NFT_id].shillPrice, "SparkNFT: incorrect ETH");
-        _addProfit( _NFT_id, editions_by_id[_NFT_id].shillPrice);
-        editions_by_id[_NFT_id].remain_shill_times -= 1;
+        require(isEditionExisting(_NFT_id), "SparkLink: This NFT does not exist");
+        require(editions_by_id[_NFT_id].remaining_shill_times > 0, "SparkLink: There is no remaining shill time for this NFT");
+        require(msg.value == editions_by_id[_NFT_id].shill_price, "SparkLink: Wrong price");
+
+        _addProfit( _NFT_id, editions_by_id[_NFT_id].shill_price);
+        editions_by_id[_NFT_id].remaining_shill_times -= 1;
         _mintNFT(_NFT_id, msg.sender);
-        if (editions_by_id[_NFT_id].remain_shill_times == 0) {
+        if (editions_by_id[_NFT_id].remaining_shill_times == 0)
             _mintNFT(_NFT_id, ownerOf(_NFT_id));
-        }
     }
 
     /**
@@ -218,7 +219,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * Emits a {Claim} events
      */
     function claimProfit(uint64 _NFT_id) public {
-        require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
+        require(isEditionExisting(_NFT_id), "SparkLink: This edition does not exist");
+        
         if (editions_by_id[_NFT_id].profit != 0) {
             uint128 amount = editions_by_id[_NFT_id].profit;
             editions_by_id[_NFT_id].profit = 0;
@@ -246,12 +248,12 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * Emits a {SetURI} events
      */
     function setURI(uint64 _NFT_id, bytes32 ipfs_hash) public {
-        require(ownerOf(_NFT_id) == msg.sender, "SparkNFT: Only owner can set token URI");
+        require(ownerOf(_NFT_id) == msg.sender, "SparkLink: Only owner can set the token URI");
         _setTokenURI(_NFT_id, ipfs_hash);
     }
 
     function label(uint64 _NFT_id, string memory content) public {
-        require(ownerOf(_NFT_id) == msg.sender, "SparkNFT: Only owner can label this NFT");
+        require(ownerOf(_NFT_id) == msg.sender, "SparkLink: Only owner can label this NFT");
         emit Label(_NFT_id, content);
     }
     /**
@@ -269,8 +271,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     ) 
         public 
     {
-        require(isEditionExist(_NFT_id), "SparkNFT: The NFT you want to buy is not exist.");
-        require(msg.sender == ownerOf(_NFT_id), "SparkNFT: NFT's price should set by owner of it.");
+        require(isEditionExisting(_NFT_id), "SparkLink: This NFT does not exist");
+        require(msg.sender == ownerOf(_NFT_id), "SparkLink: Only owner can set the price");
         editions_by_id[_NFT_id].transfer_price = _price;
         emit DeterminePrice(_NFT_id, _price);
     }
@@ -302,10 +304,10 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      */
     function approve(address to, uint256 tokenId) public virtual override {
         address owner = ownerOf(tokenId);
-        require(to != owner, "SparkNFT: approval to current owner");
+        require(to != owner, "SparkLink: Approval to current owner");
         require(
             _msgSender() == owner || isApprovedForAll(owner, _msgSender()),
-            "SparkNFT: approve caller is not owner nor approved for all"
+            "SparkLink: Approve caller is not owner nor approved for all"
         );
 
         _approve(to, uint256toUint64(tokenId));
@@ -315,7 +317,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * @dev See {IERC721-setApprovalForAll}.
      */
     function setApprovalForAll(address operator, bool approved) public virtual override {
-        require(operator != _msgSender(), "SparkNFT: approve to caller");
+        require(operator != _msgSender(), "SparkLink: Approve to caller");
         _operatorApprovals[_msgSender()][operator] = approved;
         emit ApprovalForAll(_msgSender(), operator, approved);
     }
@@ -334,7 +336,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * @dev See {IERC721-balanceOf}.
      */
     function balanceOf(address owner) public view virtual override returns (uint256) {
-        require(owner != address(0), "SparkNFT: balance query for the zero address");
+        require(owner != address(0), "SparkLink: Balance query for the zero address");
         return _balances[owner];
     }
 
@@ -343,7 +345,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      */
     function ownerOf(uint256 tokenId) public view virtual override returns (address) {
         address owner = editions_by_id[uint256toUint64(tokenId)].owner;
-        require(owner != address(0), "SparkNFT: owner query for nonexistent token");
+        require(owner != address(0), "SparkLink: Owner query for nonexistent token");
         return owner;
     }
 
@@ -365,7 +367,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * @dev See {IERC721-getApproved}.
      */
     function getApproved(uint256 tokenId) public view virtual override returns (address) {
-        require(isEditionExist(uint256toUint64(tokenId)), "SparkNFT: approved query for nonexistent token");
+        require(isEditionExisting(uint256toUint64(tokenId)), "SparkLink: Approved query for nonexistent token");
 
         return _tokenApprovals[uint256toUint64(tokenId)];
     }
@@ -381,7 +383,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * @dev See {IERC721Metadata-tokenURI}.
      */
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        require(isEditionExist(uint256toUint64(tokenId)), "SparkNFT: URI query for nonexistent token");
+        require(isEditionExisting(uint256toUint64(tokenId)), "SparkLink: URI query for nonexistent token");
         
         bytes32 _ipfs_hash = editions_by_id[uint256toUint64(tokenId)].ipfs_hash;
         string memory encoded_hash = _toBase58String(_ipfs_hash);
@@ -396,8 +398,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * - `_issue_id`: The id of the issue queryed.
      * Return a bool value.
      */
-    function isIssueExist(uint32 _issue_id) public view returns (bool) {
-        return isEditionExist(getRootNFTIdByIssueId(_issue_id));
+    function isIssueExisting(uint32 _issue_id) public view returns (bool) {
+        return isEditionExisting(getRootNFTIdByIssueId(_issue_id));
     }
 
     /**
@@ -407,7 +409,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * - `_NFT_id`: The id of the edition queryed.
      * Return a bool value.
      */
-    function isEditionExist(uint64 _NFT_id) public view returns (bool) {
+    function isEditionExisting(uint64 _NFT_id) public view returns (bool) {
         return (editions_by_id[_NFT_id].owner != address(0));
     }
 
@@ -420,7 +422,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * If the NFT is not root NFT, this value will subtract royalty fee percent.
      */
     function getProfitByNFTId(uint64 _NFT_id) public view returns (uint128){
-        require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
+        require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
         uint128 amount = editions_by_id[_NFT_id].profit;
         if (!isRootNFT(_NFT_id)) {
             uint128 _royalty_fee = calculateFee(editions_by_id[_NFT_id].profit, getRoyaltyFeeByIssueId(getIssueIdByNFTId(_NFT_id)));
@@ -437,7 +439,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * Return royalty fee percent of this issue.
      */
     function getRoyaltyFeeByIssueId(uint32 _issue_id) public view returns (uint8) {
-        require(isIssueExist(_issue_id), "SparkNFT: This issue is not exist.");
+        require(isIssueExisting(_issue_id), "SparkLink: This issue is not exist.");
         return getUint8FromUint64(56, editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
     }
 
@@ -449,7 +451,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * Return max shill times of this issue.
      */
     function getShillTimesByIssueId(uint32 _issue_id) public view returns (uint8) {
-        require(isIssueExist(_issue_id), "SparkNFT: This issue is not exist.");
+        require(isIssueExisting(_issue_id), "SparkLink: This issue is not exist.");
         return getUint8FromUint64(48, editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
     }
 
@@ -461,7 +463,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * Return total NFT number of this issue.
      */
     function getTotalAmountByIssueId(uint32 _issue_id) public view returns (uint32) {
-        require(isIssueExist(_issue_id), "SparkNFT: This issue is not exist.");
+        require(isIssueExisting(_issue_id), "SparkLink: This issue is not exist.");
         return getBottomUint32FromUint64(editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
     }
 
@@ -474,8 +476,8 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * Return the father NFT id of this NFT.
      */
     function getFatherByNFTId(uint64 _NFT_id) public view returns (uint64) {
-        require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
-        require(!isRootNFT(_NFT_id), "SparkNFT: Root NFT doesn't have father NFT.");
+        require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
+        require(!isRootNFT(_NFT_id), "SparkLink: Root NFT doesn't have father NFT.");
         return editions_by_id[_NFT_id].father_id;
     }    
     
@@ -487,32 +489,32 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * Return transfer_price of this NFT.
      */
     function getTransferPriceByNFTId(uint64 _NFT_id) public view returns (uint128) {
-        require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
+        require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
         return editions_by_id[_NFT_id].transfer_price;
     }
 
     /**
-     * @dev Query shillPrice of this NFT.
+     * @dev Query shill_price of this NFT.
      *  
      * Requirements:
      * - `_NFT_id`: The id of the NFT queryed.
-     * Return shillPrice of this NFT.
+     * Return shill_price of this NFT.
      */
     function getShillPriceByNFTId(uint64 _NFT_id) public view returns (uint128) {
-        require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
-        return editions_by_id[_NFT_id].shillPrice;
+        require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
+        return editions_by_id[_NFT_id].shill_price;
     }
 
     /**
-     * @dev Query remain_shill_times of this NFT.
+     * @dev Query remaining_shill_times of this NFT.
      *  
      * Requirements:
      * - `_NFT_id`: The id of the NFT queryed.
-     * Return remain_shill_times of this NFT.
+     * Return remaining_shill_times of this NFT.
      */
     function getRemainShillTimesByNFTId(uint64 _NFT_id) public view returns (uint8) {
-        require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
-        return editions_by_id[_NFT_id].remain_shill_times;
+        require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
+        return editions_by_id[_NFT_id].remaining_shill_times;
     }
 
     /**
@@ -523,7 +525,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
      * Return depth of this NFT.
      */
     function getDepthByNFTId(uint64 _NFT_id) public view returns (uint64) {
-        require(isEditionExist(_NFT_id), "SparkNFT: Edition is not exist.");
+        require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
         uint64 depth = 0;
         for (depth = 0; !isRootNFT(_NFT_id); _NFT_id = getFatherByNFTId(_NFT_id)) {
             depth += 1;
@@ -636,7 +638,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
                 return retval == IERC721Receiver.onERC721Received.selector;
             } catch (bytes memory reason) {
                 if (reason.length == 0) {
-                    revert("SparkNFT: transfer to non ERC721Receiver implementer");
+                    revert("SparkLink: Transfer to non ERC721Receiver implementer");
                 } else {
                     assembly {
                         revert(add(32, reason), mload(reason))
@@ -682,12 +684,12 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         uint64 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
         require(
             _checkOnERC721Received(address(0), _owner, new_NFT_id, ""),
-            "SparkNFT: transfer to non ERC721Receiver implementer"
+            "SparkLink: Transfer to non ERC721Receiver implementer"
         );
         Edition storage new_NFT = editions_by_id[new_NFT_id];
-        new_NFT.remain_shill_times = getShillTimesByIssueId(_issue_id);
+        new_NFT.remaining_shill_times = getShillTimesByIssueId(_issue_id);
         new_NFT.father_id = _NFT_id;
-        new_NFT.shillPrice = calculateFee(editions_by_id[_NFT_id].shillPrice, loss_ratio);
+        new_NFT.shill_price = calculateFee(editions_by_id[_NFT_id].shill_price, loss_ratio);
         new_NFT.owner = _owner;
         new_NFT.ipfs_hash = editions_by_id[_NFT_id].ipfs_hash;
         _balances[_owner] += 1;
@@ -722,11 +724,11 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         internal 
         virtual 
     {
-        require(ownerOf(tokenId) == from, "SparkNFT: transfer of token that is not own");
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "SparkNFT: transfer caller is not owner nor approved");
-        require(to != address(0), "SparkNFT: transfer to the zero address");
+        require(ownerOf(tokenId) == from, "SparkLink: Transfer of token that is not own");
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "SparkLink: Transfer caller is not owner nor approved");
+        require(to != address(0), "SparkLink: Transfer to the zero address");
         if (msg.sender != ownerOf(tokenId)) {
-            require(msg.value == editions_by_id[tokenId].transfer_price, "SparkNFT: not enought ETH");
+            require(msg.value == editions_by_id[tokenId].transfer_price, "SparkLink: Price not met");
             _addProfit(tokenId, editions_by_id[tokenId].transfer_price);
             claimProfit(tokenId);
         }
@@ -768,7 +770,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
         virtual 
     {
         _transfer(from, to, tokenId);
-        require(_checkOnERC721Received(from, to, tokenId, _data), "SparkNFT: transfer to non ERC721Receiver implementer");
+        require(_checkOnERC721Received(from, to, tokenId, _data), "SparkLink: Transfer to non ERC721Receiver implementer");
     }
 
     /**
@@ -790,12 +792,12 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     }
 
     function _addTotalAmount(uint32 _issue_id) internal {
-        require(getTotalAmountByIssueId(_issue_id) < type(uint32).max, "SparkNFT: There is no left in this issue.");
+        require(getTotalAmountByIssueId(_issue_id) < type(uint32).max, "SparkLink: There is no left in this issue.");
         editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id += 1;
     }
 
     function _isApprovedOrOwner(address spender, uint64 tokenId) internal view virtual returns (bool) {
-        require(isEditionExist(tokenId), "SparkNFT: operator query for nonexistent token");
+        require(isEditionExisting(tokenId), "SparkLink: Operator query for nonexistent token");
         address owner = ownerOf(tokenId);
         return (spender == owner || getApproved(tokenId) == spender || isApprovedForAll(owner, spender));
     }
@@ -827,7 +829,7 @@ contract SparkNFT is Context, ERC165, IERC721, IERC721Metadata{
     }
 
     function uint256toUint64(uint256 value) internal pure returns (uint64) {
-        require(value <= type(uint64).max, "SparkNFT: value doesn't fit in 64 bits");
+        require(value <= type(uint64).max, "SparkLink: Value doesn't fit in 64 bits");
         return uint64(value);
     }
     
