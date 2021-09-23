@@ -20,17 +20,17 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     /*
     Abstract struct Issue {
         uint8 royalty_fee;
-        uint8 shilltimes;
+        uint16 shill_times;
         uint32 total_amount;
     }
     This structure records some common attributes of a series of NFTs:
         - `royalty_fee`: the proportion of royaltyes
-        - `shilltimes`: the number of times a single NFT can been shared
+        - `shill_times`: the number of times a single NFT can been shared
         - `total_amount`: the total number of NFTs in the series
     To reduce gas cost, this structure is actually stored in the `father_id` attibute of root NFT
         - 0~31  `total_amount`
-        - 48~56 `shilltimes`
-        - 57~63 `royalty_fee`
+        - 40~55 `shill_times`
+        - 56~63 `royalty_fee`
     */
 
     struct Edition {
@@ -49,7 +49,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         // - `profit`: record the profit owner can claim (include royalty fee it should conduct to its father NFT)
         uint64 father_id;
         uint128 shill_price;
-        uint8 remaining_shill_times;
+        uint16 remaining_shill_times;
         address owner;
         bytes32 ipfs_hash;
         uint128 transfer_price;
@@ -114,7 +114,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      * - `_royalty_fee`: The proportion of royaltyes, it represents the ratio of the father NFT's profit from the child NFT
      *                   Its value should <= 100
      * - `_shill_times`: the number of times a single NFT can been shared
-     *                   Its value should <= 255
+     *                   Its value should <= 65536
      * - `_ipfs_hash`: IPFS hash value of the URI where this NTF's metadata stores
      *
      *- `token_address`: list of tokens(address) can be accepted for payment.
@@ -126,7 +126,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     function publish(
         uint128 _first_sell_price,
         uint8 _royalty_fee,
-        uint8 _shill_times,
+        uint16 _shill_times,
         bytes32 _ipfs_hash,
         address _token_addr
     ) 
@@ -146,7 +146,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         Edition storage new_NFT = editions_by_id[rootNFTId];
         uint64 information;
         information = reWriteUint8InUint64(56, _royalty_fee, information);
-        information = reWriteUint8InUint64(48, _shill_times, information);
+        information = reWriteUint16InUint64(40, _shill_times, information);
         information += 1;
         token_addresses[new_issue_id] = _token_addr;
         new_NFT.father_id = information;
@@ -487,9 +487,9 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      * - `_issue_id`: The id of the issue queryed.
      * Return max shill times of this issue.
      */
-    function getShillTimesByIssueId(uint32 _issue_id) public view returns (uint8) {
+    function getShillTimesByIssueId(uint32 _issue_id) public view returns (uint16) {
         require(isIssueExisting(_issue_id), "SparkLink: This issue is not exist.");
-        return getUint8FromUint64(48, editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
+        return getUint16FromUint64(40, editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
     }
 
     /**
@@ -549,7 +549,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      * - `_NFT_id`: The id of the NFT queryed.
      * Return remaining_shill_times of this NFT.
      */
-    function getRemainShillTimesByNFTId(uint64 _NFT_id) public view returns (uint8) {
+    function getRemainShillTimesByNFTId(uint64 _NFT_id) public view returns (uint16) {
         require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
         return editions_by_id[_NFT_id].remaining_shill_times;
     }
@@ -856,7 +856,12 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
             data8 := and(sub(shl(8, 1), 1), shr(position, data64))
         }
     }
-    
+    function getUint16FromUint64(uint8 position, uint64 data64) internal pure returns (uint16 data16) {
+        // (((1 << size) - 1) & base >> position)
+        assembly {
+            data16 := and(sub(shl(16, 1), 1), shr(position, data64))
+        }
+    }
     function getBottomUint32FromUint64(uint64 data64) internal pure returns (uint32 data32) {
         // (((1 << size) - 1) & base >> position)
         assembly {
@@ -869,6 +874,14 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
             // mask = ~((1 << 8 - 1) << position)
             // _box = (mask & _box) | ()data << position)
             boxed := or( and(data64, not(shl(position, sub(shl(8, 1), 1)))), shl(position, data8))
+        }
+    }
+
+    function reWriteUint16InUint64(uint8 position, uint16 data16, uint64 data64) internal pure returns (uint64 boxed) {
+        assembly {
+            // mask = ~((1 << 16 - 1) << position)
+            // _box = (mask & _box) | ()data << position)
+            boxed := or( and(data64, not(shl(position, sub(shl(16, 1), 1)))), shl(position, data16))
         }
     }
 
