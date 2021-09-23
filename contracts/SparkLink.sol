@@ -9,11 +9,13 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     using Address for address;
     using Counters for Counters.Counter;
+    using SafeERC20 for IERC20;
     Counters.Counter private _issueIds;
     /*
     Abstract struct Issue {
@@ -72,7 +74,8 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     event Publish(
 	    uint32 indexed issue_id,
         address indexed publisher,
-        uint64 rootNFTId
+        uint64 rootNFTId,
+        address token_addr
     );
 
     // Emit when claimProfit success
@@ -114,6 +117,9 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      *                   Its value should <= 255
      * - `_ipfs_hash`: IPFS hash value of the URI where this NTF's metadata stores
      *
+     *- `token_address`: list of tokens(address) can be accepted for payment.
+     *                 `A token address` can be ERC-20 token contract address or `address(0)`(ETH).
+     *
      * Emits a {Publish} event.
      * - Emitted {Publish} event contains root NFT id.
      */
@@ -121,13 +127,15 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         uint128 _first_sell_price,
         uint8 _royalty_fee,
         uint8 _shill_times,
-        bytes32 _ipfs_hash
+        bytes32 _ipfs_hash,
+        address _token_addr
     ) 
         external 
     {
         require(_royalty_fee <= 100, "SparkLink: Royalty fee should be <= 100%.");
         _issueIds.increment();
         require(_issueIds.current() <= type(uint32).max, "SparkLink: Value doesn't fit in 32 bits.");
+        require(IERC20(_token_addr).totalSupply() > 0, "Not a valid ERC20 token address");
         uint32 new_issue_id = uint32(_issueIds.current());
         uint64 rootNFTId = getNftIdByEditionIdAndIssueId(new_issue_id, 1);
         require(
@@ -140,6 +148,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         information = reWriteUint8InUint64(56, _royalty_fee, information);
         information = reWriteUint8InUint64(48, _shill_times, information);
         information += 1;
+        token_addresses[new_issue_id] = _token_addr;
         new_NFT.father_id = information;
         new_NFT.remaining_shill_times = _shill_times;
         new_NFT.shill_price = _first_sell_price;
@@ -150,7 +159,8 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         emit Publish(
             new_issue_id,
             msg.sender,
-            rootNFTId
+            rootNFTId,
+            _token_addr
         );
     }
 
@@ -175,9 +185,17 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     {
         require(isEditionExisting(_NFT_id), "SparkLink: This NFT does not exist");
         require(editions_by_id[_NFT_id].remaining_shill_times > 0, "SparkLink: There is no remaining shill time for this NFT");
-        require(msg.value == editions_by_id[_NFT_id].shill_price, "SparkLink: Wrong price");
+        address token_addr = getTokenAddrByIssueId(getIssueIdByNFTId(_NFT_id));
+        if (token_addr == address(0)){
+            require(msg.value == editions_by_id[_NFT_id].shill_price, "SparkLink: Wrong price");
+            _addProfit( _NFT_id, editions_by_id[_NFT_id].shill_price);
+        }
+        else {
+            uint256 before_balance = IERC20(token_addr).balanceOf(address(this));
+            IERC20(token_addr).safeTransferFrom(msg.sender, address(this), editions_by_id[_NFT_id].shill_price);
+            _addProfit( _NFT_id, uint256toUint128(IERC20(token_addr).balanceOf(address(this))-before_balance));
+        }
 
-        _addProfit( _NFT_id, editions_by_id[_NFT_id].shill_price);
         editions_by_id[_NFT_id].remaining_shill_times -= 1;
         _mintNFT(_NFT_id, msg.sender);
         if (editions_by_id[_NFT_id].remaining_shill_times == 0)
@@ -223,13 +241,19 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         
         if (editions_by_id[_NFT_id].profit != 0) {
             uint128 amount = editions_by_id[_NFT_id].profit;
+            address token_addr = getTokenAddrByIssueId(getIssueIdByNFTId(_NFT_id));
             editions_by_id[_NFT_id].profit = 0;
             if (!isRootNFT(_NFT_id)) {
                 uint128 _royalty_fee = calculateFee(amount, getRoyaltyFeeByIssueId(getIssueIdByNFTId(_NFT_id)));
                 _addProfit( getFatherByNFTId(_NFT_id), _royalty_fee);
                 amount -= _royalty_fee;
             }
-            payable(ownerOf(_NFT_id)).transfer(amount);
+            if (token_addr == address(0)){
+                payable(ownerOf(_NFT_id)).transfer(amount);
+            }
+            else {
+                IERC20(token_addr).safeTransferFrom(address(this), ownerOf(_NFT_id), amount);
+            }
             emit Claim(
                 _NFT_id,
                 ownerOf(_NFT_id),
@@ -444,6 +468,19 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     }
 
     /**
+     * @dev Query supported token address of an issue.
+     *  
+     * Requirements:
+     * - `_issue_id`: The id of the issue queryed.
+     * Return supported token address of this issue.
+     * Address 0 represent ETH.
+     */
+    function getTokenAddrByIssueId(uint32 _issue_id) public view returns (address) {
+        require(isIssueExisting(_issue_id), "SparkLink: This issue is not exist.");
+        return token_addresses[_issue_id];
+    }
+
+    /**
      * @dev Query max shill times of an issue.
      *  
      * Requirements:
@@ -610,6 +647,8 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     // Mapping from owner to operator approvals
     mapping(address => mapping(address => bool)) private _operatorApprovals;
     mapping (uint64 => Edition) private editions_by_id;
+    // mapping from issue ID to support ERC20 token address
+    mapping(uint32 => address) private token_addresses;
 
     bytes constant private sha256MultiHash = hex"1220"; 
     bytes constant private ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -728,8 +767,17 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         require(_isApprovedOrOwner(_msgSender(), tokenId), "SparkLink: Transfer caller is not owner nor approved");
         require(to != address(0), "SparkLink: Transfer to the zero address");
         if (msg.sender != ownerOf(tokenId)) {
-            require(msg.value == editions_by_id[tokenId].transfer_price, "SparkLink: Price not met");
-            _addProfit(tokenId, editions_by_id[tokenId].transfer_price);
+            address token_addr = getTokenAddrByIssueId(getIssueIdByNFTId(tokenId));
+            uint128 transfer_price = editions_by_id[tokenId].transfer_price;
+            if (token_addr == address(0)){
+                require(msg.value == transfer_price, "SparkLink: Price not met");
+                _addProfit(tokenId, transfer_price);
+            }
+            else {
+                uint256 before_balance = IERC20(token_addr).balanceOf(address(this));
+                IERC20(token_addr).safeTransferFrom(msg.sender, address(this), transfer_price);
+                _addProfit(tokenId, uint256toUint128(IERC20(token_addr).balanceOf(address(this))-before_balance));
+            }
             claimProfit(tokenId);
         }
         else {
@@ -827,6 +875,11 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     function uint256toUint64(uint256 value) internal pure returns (uint64) {
         require(value <= type(uint64).max, "SparkLink: Value doesn't fit in 64 bits");
         return uint64(value);
+    }
+
+    function uint256toUint128(uint256 value) internal pure returns (uint128) {
+        require(value <= type(uint128).max, "SparkLink: Value doesn't fit in 128 bits");
+        return uint128(value);
     }
     
     function calculateFee(uint128 _amount, uint8 _fee_percent) internal pure returns (uint128) {
