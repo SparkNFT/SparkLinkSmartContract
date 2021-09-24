@@ -506,6 +506,18 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     }
 
     /**
+     * @dev Query supported token address of a NFT.
+     *  
+     * Requirements:
+     * - `_NFT_id`: The id of the NFT queryed.
+     * Return supported token address of this NFT.
+     * Address 0 represent ETH.
+     */
+    function getTokenAddrByNFTId(uint64 _NFT_id) public view returns (address) {
+        return getTokenAddrByIssueId(getIssueIdByNFTId(_NFT_id));
+    }
+
+    /**
      * @dev Query the id of this NFT's father NFT.
      *  
      * Requirements:
