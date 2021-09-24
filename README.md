@@ -63,7 +63,7 @@ Note:
 | [Mainnet][mainnet]     | N/A                    |
 | [BSC][bscscan]         | N/A                    |
 | [BSC-testnet][bsctest] | N/A                    |
-| [Matic][matic]         | [0x71872117][71872117] |
+| [Matic][matic]         | [0xb42d4525][b42d4525] |
 
 [mainnet]: https://etherscan.io
 [ropsten]: https://ropsten.etherscan.io
@@ -71,7 +71,7 @@ Note:
 [bsctest]: https://testnet.bscscan.com
 [matic]: https://polygonscan.com
 [mumbai]: https://explorer-mumbai.maticvigil.com
-[71872117]: https://polygonscan.com/address/0x7187211744c67F8cE89fEAc63b85D8D17417bDfE
+[b42d4525]: https://polygonscan.com/address/0xb42d4525841008A69E427026DF354067fD6A524f
 
 ## Contribute
 
