@@ -135,7 +135,8 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         require(_royalty_fee <= 100, "SparkLink: Royalty fee should be <= 100%.");
         _issueIds.increment();
         require(_issueIds.current() <= type(uint32).max, "SparkLink: Value doesn't fit in 32 bits.");
-        require(IERC20(_token_addr).totalSupply() > 0, "Not a valid ERC20 token address");
+        if (_token_addr != address(0))
+            require(IERC20(_token_addr).totalSupply() > 0, "Not a valid ERC20 token address");
         uint32 new_issue_id = uint32(_issueIds.current());
         uint64 rootNFTId = getNftIdByEditionIdAndIssueId(new_issue_id, 1);
         require(
