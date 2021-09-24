@@ -253,7 +253,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
                 payable(ownerOf(_NFT_id)).transfer(amount);
             }
             else {
-                IERC20(token_addr).safeTransferFrom(address(this), ownerOf(_NFT_id), amount);
+                IERC20(token_addr).safeTransfer(ownerOf(_NFT_id), amount);
             }
             emit Claim(
                 _NFT_id,
