@@ -7,6 +7,7 @@ const airpod_ctor_parameters = {
     _symbol: "SPL"
 };
 
+const testTokenMintAmount = utils.parseUnits('1000000000', 18).toString();
 const default_hash_1 = {
     _hash: '4f0b018a3b003b7c99f97427f410cafe5707ba18d28b13cd8bfa59e08e110380',
     _URI: "https://ipfs.io/ipfs/QmTfCejgo2wTwqnDJs8Lu1pCNeCrCDuE4GAwkna93zdd7d"
@@ -22,6 +23,13 @@ const hash_3 = {
     _URI: "https://ipfs.io/ipfs/QmU7C9hnDYnThfpCvX28bdzZpX8Dtyt8m7J6cUNfmBoN6E"
 };
 
+const valid_publish_parameters = { 
+    _first_sell_price: BigNumber.from(100),
+    _royalty_fee: 30,
+    _shill_times: 10,
+    ipfs_hash: Buffer.from('4f0b018a3b003b7c99f97427f410cafe5707ba18d28b13cd8bfa59e08e110380', 'hex'),
+    token_addr: ethers.constants.AddressZero
+}
 const invalid_publish_royalty_fee = {
     _first_sell_price: BigNumber.from(1000),
     _royalty_fee: 111,
@@ -126,5 +134,7 @@ export default {
     hash_3,
     label1,
     label2,
-    label3
+    label3,
+    testTokenMintAmount,
+    valid_publish_parameters
 };

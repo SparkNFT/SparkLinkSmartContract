@@ -2,6 +2,8 @@ import { use, expect } from "chai";
 import { solidity } from "ethereum-waffle";
 import { ethers } from "hardhat";
 import { SparkLink } from "../artifacts/typechain/SparkLink";
+import { TestTokenA } from "../artifacts/typechain/TestTokenA";
+import { BurnToken } from "../artifacts/typechain/BurnToken";
 import { BigNumber } from "@ethersproject/bignumber";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import spark_constant from "./spark_constant";
@@ -104,19 +106,71 @@ describe("SparkLink", function () {
       expect(await SparkLink.getShillPriceByNFTId(root_nft_id)).to.eq(BigNumber.from(100));
       expect(await SparkLink.getTotalAmountByIssueId(issue_id)).to.eq(1);
       expect(await SparkLink.getRemainShillTimesByNFTId(root_nft_id)).to.eq(10);
-    });
-  });
+    });    
 
-    
-  it('should work when shill times is zero', async (): Promise<void> => {
-    const other = accounts[1];
-    const special_parameters = spark_constant.publish_zero_shill_times;
-    const publish_event = await helper.publish(
-        SparkLink, special_parameters._first_sell_price, special_parameters._royalty_fee ,special_parameters._shill_times , special_parameters.ipfs_hash);
-    const transfer_event = (await SparkLink.queryFilter(SparkLink.filters.Transfer(ethers.constants.AddressZero, owner.address, null)))[0];
-    expect(transfer_event.args.from).to.eq(ethers.constants.AddressZero);
-    expect(transfer_event.args.to).to.eq(owner.address);
-  });
+    it('should publish an issue and emit event successfully with test token', async () => {
+      const TestTokenA = await ethers.getContractFactory('TestTokenA');
+      const testTokenA = await TestTokenA.deploy(spark_constant.testTokenMintAmount);
+      let testTokenAContract = await testTokenA.deployed();
+      let test_token_parameter = spark_constant.valid_publish_parameters;
+      test_token_parameter.token_addr = testTokenAContract.address;
+      const event = await helper.publish(
+        SparkLink,
+        test_token_parameter._first_sell_price,
+        test_token_parameter._royalty_fee,
+        test_token_parameter._shill_times,
+        test_token_parameter.ipfs_hash,
+        testTokenAContract.address
+        );
+      expect(event.args.issue_id).to.eq(1);
+      expect(event.args.publisher).to.hexEqual(owner.address);
+      let root_nft_id = BigNumber.from("0x100000000").add(1);
+      let issue_id = await SparkLink.getIssueIdByNFTId(root_nft_id);
+      expect(event.args.rootNFTId).to.eq(BigNumber.from(root_nft_id));
+      expect(await SparkLink.tokenURI(root_nft_id)).to.eq(spark_constant.default_hash_1._URI);
+      expect(await SparkLink.getShillTimesByIssueId(issue_id)).to.eq(10);
+      expect(await SparkLink.getShillPriceByNFTId(root_nft_id)).to.eq(BigNumber.from(100));
+      expect(await SparkLink.getTotalAmountByIssueId(issue_id)).to.eq(1);
+      expect(await SparkLink.getRemainShillTimesByNFTId(root_nft_id)).to.eq(10);
+    });
+
+    it('should publish an issue and emit event successfully with burn token', async () => {
+      const BurnToken = await ethers.getContractFactory('BurnToken');
+      const burnToken = await BurnToken.deploy(spark_constant.testTokenMintAmount);
+      let BurnTokenContract = await burnToken.deployed();
+      let test_token_parameter = spark_constant.valid_publish_parameters;
+      test_token_parameter.token_addr = BurnTokenContract.address;
+      const event = await helper.publish(
+        SparkLink,
+        test_token_parameter._first_sell_price,
+        test_token_parameter._royalty_fee,
+        test_token_parameter._shill_times,
+        test_token_parameter.ipfs_hash,
+        BurnTokenContract.address
+        );
+      expect(event.args.issue_id).to.eq(1);
+      expect(event.args.publisher).to.hexEqual(owner.address);
+      let root_nft_id = BigNumber.from("0x100000000").add(1);
+      let issue_id = await SparkLink.getIssueIdByNFTId(root_nft_id);
+      expect(event.args.rootNFTId).to.eq(BigNumber.from(root_nft_id));
+      expect(await SparkLink.tokenURI(root_nft_id)).to.eq(spark_constant.default_hash_1._URI);
+      expect(await SparkLink.getShillTimesByIssueId(issue_id)).to.eq(10);
+      expect(await SparkLink.getShillPriceByNFTId(root_nft_id)).to.eq(BigNumber.from(100));
+      expect(await SparkLink.getTotalAmountByIssueId(issue_id)).to.eq(1);
+      expect(await SparkLink.getRemainShillTimesByNFTId(root_nft_id)).to.eq(10);
+    });
+
+    it('should work when shill times is zero', async (): Promise<void> => {
+      const other = accounts[1];
+      const special_parameters = spark_constant.publish_zero_shill_times;
+      const publish_event = await helper.publish(
+          SparkLink, special_parameters._first_sell_price, special_parameters._royalty_fee ,special_parameters._shill_times , special_parameters.ipfs_hash);
+      const transfer_event = (await SparkLink.queryFilter(SparkLink.filters.Transfer(ethers.constants.AddressZero, owner.address, null)))[0];
+      expect(transfer_event.args.from).to.eq(ethers.constants.AddressZero);
+      expect(transfer_event.args.to).to.eq(owner.address);
+    });
+
+});
 
   context('acceptShill()', async () => {
     it('Should acceptShill reject invalid parameters', async () => {
@@ -257,6 +311,44 @@ describe("SparkLink", function () {
       shill_price = shill_price.mul(spark_constant.loss_ratio).div(100);
       for (let i = 0; i < loop_times; i += 1) {
         father_nft_id = new_nft_id;
+        new_nft_id = (await helper.accept_shill(SparkLink, accounts[base_account_index+i], new_nft_id, shill_price)).args.tokenId;
+        expect((await SparkLink.getProfitByNFTId(father_nft_id))).to.eq(BigNumber.from(Math.ceil(Number(shill_price)*Number(sub_royalty_fee)/100)));
+        shill_price = shill_price.mul(spark_constant.loss_ratio).div(100);
+      }
+    });
+    it('should shill_price decrease by loss ratio with test token', async (): Promise<void> => {
+      const TestTokenA = await ethers.getContractFactory('TestTokenA');
+      const testTokenA = await TestTokenA.deploy(spark_constant.testTokenMintAmount);
+      let testTokenAContract = await testTokenA.deployed();
+      let test_token_parameter = spark_constant.valid_publish_parameters;
+      test_token_parameter.token_addr = testTokenAContract.address;
+      const publish_event = await helper.publish(
+        SparkLink,
+        test_token_parameter._first_sell_price,
+        test_token_parameter._royalty_fee,
+        test_token_parameter._shill_times,
+        test_token_parameter.ipfs_hash,
+        testTokenAContract.address
+        );
+      const loop_times = 17;
+      const other = accounts[2];
+      const base_account_index = 3;
+      let shill_price = BigNumber.from(100);
+      const root_nft_id = publish_event.args.rootNFTId;
+      let issue_id = await SparkLink.getIssueIdByNFTId(root_nft_id);
+      let royalty_fee = await SparkLink.getRoyaltyFeeByIssueId(issue_id);
+      let sub_royalty_fee = (BigNumber.from(100)).sub(royalty_fee);
+      let father_nft_id = root_nft_id;
+      await testTokenAContract.connect(owner).approve(owner.address, spark_constant.testTokenMintAmount);
+      await testTokenAContract.connect(owner).transferFrom(owner.address, other.address,shill_price);
+      await testTokenAContract.connect(other).approve(SparkLink.address, shill_price);
+      let new_nft_id = (await helper.accept_shill(SparkLink, other, root_nft_id, shill_price)).args.tokenId;
+      expect(await SparkLink.getProfitByNFTId(father_nft_id)).to.eq(shill_price);
+      shill_price = shill_price.mul(spark_constant.loss_ratio).div(100);
+      for (let i = 0; i < loop_times; i += 1) {
+        father_nft_id = new_nft_id;
+        await testTokenAContract.connect(owner).transferFrom(owner.address, accounts[base_account_index+i].address,shill_price);
+        await testTokenAContract.connect(accounts[base_account_index+i]).approve(SparkLink.address, shill_price);
         new_nft_id = (await helper.accept_shill(SparkLink, accounts[base_account_index+i], new_nft_id, shill_price)).args.tokenId;
         expect((await SparkLink.getProfitByNFTId(father_nft_id))).to.eq(BigNumber.from(Math.ceil(Number(shill_price)*Number(sub_royalty_fee)/100)));
         shill_price = shill_price.mul(spark_constant.loss_ratio).div(100);
