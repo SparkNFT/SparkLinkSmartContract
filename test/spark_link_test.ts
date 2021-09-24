@@ -398,6 +398,39 @@ describe("SparkLink", function () {
         to.eq(await SparkLink.getShillPriceByNFTId(root_nft_id));
     });
 
+    it("should transfer test token A from contract balance to owner balance", async (): Promise<void> => {
+      const TestTokenA = await ethers.getContractFactory('TestTokenA');
+      const testTokenA = await TestTokenA.deploy(spark_constant.testTokenMintAmount);
+      let testTokenAContract = await testTokenA.deployed();
+      let test_token_parameter = spark_constant.valid_publish_parameters;
+      test_token_parameter.token_addr = testTokenAContract.address;
+      const publish_event = await helper.publish(
+        SparkLink,
+        test_token_parameter._first_sell_price,
+        test_token_parameter._royalty_fee,
+        test_token_parameter._shill_times,
+        test_token_parameter.ipfs_hash,
+        testTokenAContract.address
+        );
+      const other = accounts[1];
+      const caller = accounts[2];
+      const shill_price = BigNumber.from(100);
+      await testTokenAContract.connect(owner).approve(owner.address, spark_constant.testTokenMintAmount);
+      await testTokenAContract.connect(owner).transferFrom(owner.address, other.address,shill_price);
+      await testTokenAContract.connect(other).approve(SparkLink.address, shill_price);
+      const root_nft_id = publish_event.args.rootNFTId;
+      await helper.accept_shill(SparkLink, other, root_nft_id);
+      const contract_balance_before_claimProfit = await testTokenAContract.balanceOf(SparkLink.address);
+      const owner_balance_before_claimProfit = await testTokenAContract.balanceOf(owner.address);
+      await helper.claim_profit(SparkLink, caller, root_nft_id);
+      const contract_balance_after_claimProfit = await testTokenAContract.balanceOf(SparkLink.address);
+      const owner_balance_after_claimProfit = await testTokenAContract.balanceOf(owner.address);
+      expect(contract_balance_before_claimProfit.sub(contract_balance_after_claimProfit)).
+        to.eq(await SparkLink.getShillPriceByNFTId(root_nft_id));
+      expect(owner_balance_after_claimProfit.sub(owner_balance_before_claimProfit)).
+        to.eq(await SparkLink.getShillPriceByNFTId(root_nft_id));
+    });
+
     it("should profit spread from the bottom to the top", async (): Promise<void> => {
       const loop_times = 17;
       const caller = accounts[1];
@@ -441,6 +474,63 @@ describe("SparkLink", function () {
       }
     }) 
     
+    it("should profit spread from the bottom to the top with test token A", async (): Promise<void> => {
+      const TestTokenA = await ethers.getContractFactory('TestTokenA');
+      const testTokenA = await TestTokenA.deploy(spark_constant.testTokenMintAmount);
+      let testTokenAContract = await testTokenA.deployed();
+      let test_token_parameter = spark_constant.valid_publish_parameters;
+      test_token_parameter.token_addr = testTokenAContract.address;
+      const loop_times = 17;
+      const caller = accounts[1];
+      const base_account_index = 2;
+      let shill_prices:BigNumber[] = new Array;
+      let nft_ids:BigNumber[] = new Array;
+      let profits:BigNumber[] = new Array(loop_times+1);
+      let claim_increases:BigNumber[] = new Array(loop_times+1);
+      shill_prices.push(BigNumber.from(100));
+      const publish_event = await helper.publish(
+        SparkLink,
+        shill_prices[0],
+        test_token_parameter._royalty_fee,
+        test_token_parameter._shill_times,
+        test_token_parameter.ipfs_hash,
+        testTokenAContract.address
+        );
+      // length is loop_times+1
+      nft_ids.push(publish_event.args.rootNFTId);
+      let issue_id = await SparkLink.getIssueIdByNFTId(nft_ids[0]);
+      let royalty_fee = await SparkLink.getRoyaltyFeeByIssueId(issue_id);
+      for (let i = 0; i < loop_times; i += 1){
+        await testTokenAContract.connect(owner).transfer(accounts[base_account_index+i].address, shill_prices[i]);
+        await testTokenAContract.connect(accounts[base_account_index+i]).approve(SparkLink.address, shill_prices[i]);
+        nft_ids.push((await helper.accept_shill(SparkLink, accounts[base_account_index+i], nft_ids[i], shill_prices[i])).args.tokenId);
+        shill_prices.push(shill_prices[i].mul(spark_constant.loss_ratio).div(100));
+      }
+      profits[loop_times] = BigNumber.from(0);
+      claim_increases[loop_times] = BigNumber.from(0);
+      profits[loop_times-1] = (await SparkLink.getShillPriceByNFTId(nft_ids[loop_times-1]));
+      claim_increases[loop_times-1] = profits[loop_times-1].sub(profits[loop_times-1].mul(royalty_fee).div(100))
+      for (let i = loop_times-2; i >= 0; i -= 1){
+        profits[i] = profits[i+1].mul(royalty_fee).div(100).add(await SparkLink.getShillPriceByNFTId(nft_ids[i]));
+        claim_increases[i] = profits[i].sub(profits[i].mul(royalty_fee).div(100));
+      }
+      for (let i = loop_times-1; i >= 1; i -= 1) {
+       expect(shill_prices[i].sub(shill_prices[i].mul(royalty_fee).div(100))).to.eq(await SparkLink.getProfitByNFTId(nft_ids[i]));
+      }
+      for (let i = 0; i < loop_times; i += 1) {
+        expect(await SparkLink.getEditionIdByNFTId(nft_ids[i])).to.eq(i+1);
+      }
+      claim_increases[0] = profits[0];
+      for (let i = loop_times-1; i >= 0; i -= 1) {
+        let before_balance = await await testTokenAContract.balanceOf(await SparkLink.ownerOf(nft_ids[i]));
+        let claim_event = await helper.claim_profit(SparkLink, caller, nft_ids[i]);
+        let amount = claim_event.args.amount;
+        let after_balance = await testTokenAContract.balanceOf(await SparkLink.ownerOf(nft_ids[i]));
+        expect(amount).to.eq(after_balance.sub(before_balance));
+        expect(claim_increases[i]).to.eq(amount);
+      }
+    }) 
+
     it("should profit spread from the bottom to the top when royalty fee is 100", async (): Promise<void> => {
       const loop_times = 17;
       const caller = accounts[1];
