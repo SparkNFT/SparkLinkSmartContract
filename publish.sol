@@ -2,7 +2,7 @@
 
 // File @openzeppelin/contracts/utils/introspection/IERC165.sol@v4.3.0
 
-// Subject to the MIT license.
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
@@ -623,6 +623,191 @@ abstract contract ERC165 is IERC165 {
 }
 
 
+// File @openzeppelin/contracts/token/ERC20/IERC20.sol@v4.3.0
+
+
+
+pragma solidity ^0.8.0;
+
+/**
+ * @dev Interface of the ERC20 standard as defined in the EIP.
+ */
+interface IERC20 {
+    /**
+     * @dev Returns the amount of tokens in existence.
+     */
+    function totalSupply() external view returns (uint256);
+
+    /**
+     * @dev Returns the amount of tokens owned by `account`.
+     */
+    function balanceOf(address account) external view returns (uint256);
+
+    /**
+     * @dev Moves `amount` tokens from the caller's account to `recipient`.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transfer(address recipient, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Returns the remaining number of tokens that `spender` will be
+     * allowed to spend on behalf of `owner` through {transferFrom}. This is
+     * zero by default.
+     *
+     * This value changes when {approve} or {transferFrom} are called.
+     */
+    function allowance(address owner, address spender) external view returns (uint256);
+
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * IMPORTANT: Beware that changing an allowance with this method brings the risk
+     * that someone may use both the old and the new allowance by unfortunate
+     * transaction ordering. One possible solution to mitigate this race
+     * condition is to first reduce the spender's allowance to 0 and set the
+     * desired value afterwards:
+     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+     *
+     * Emits an {Approval} event.
+     */
+    function approve(address spender, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Moves `amount` tokens from `sender` to `recipient` using the
+     * allowance mechanism. `amount` is then deducted from the caller's
+     * allowance.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
+
+    /**
+     * @dev Emitted when `value` tokens are moved from one account (`from`) to
+     * another (`to`).
+     *
+     * Note that `value` may be zero.
+     */
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    /**
+     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+     * a call to {approve}. `value` is the new allowance.
+     */
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+}
+
+
+// File @openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol@v4.3.0
+
+
+
+pragma solidity ^0.8.0;
+
+
+/**
+ * @title SafeERC20
+ * @dev Wrappers around ERC20 operations that throw on failure (when the token
+ * contract returns false). Tokens that return no value (and instead revert or
+ * throw on failure) are also supported, non-reverting calls are assumed to be
+ * successful.
+ * To use this library you can add a `using SafeERC20 for IERC20;` statement to your contract,
+ * which allows you to call the safe operations as `token.safeTransfer(...)`, etc.
+ */
+library SafeERC20 {
+    using Address for address;
+
+    function safeTransfer(
+        IERC20 token,
+        address to,
+        uint256 value
+    ) internal {
+        _callOptionalReturn(token, abi.encodeWithSelector(token.transfer.selector, to, value));
+    }
+
+    function safeTransferFrom(
+        IERC20 token,
+        address from,
+        address to,
+        uint256 value
+    ) internal {
+        _callOptionalReturn(token, abi.encodeWithSelector(token.transferFrom.selector, from, to, value));
+    }
+
+    /**
+     * @dev Deprecated. This function has issues similar to the ones found in
+     * {IERC20-approve}, and its usage is discouraged.
+     *
+     * Whenever possible, use {safeIncreaseAllowance} and
+     * {safeDecreaseAllowance} instead.
+     */
+    function safeApprove(
+        IERC20 token,
+        address spender,
+        uint256 value
+    ) internal {
+        // safeApprove should only be called when setting an initial allowance,
+        // or when resetting it to zero. To increase and decrease it, use
+        // 'safeIncreaseAllowance' and 'safeDecreaseAllowance'
+        require(
+            (value == 0) || (token.allowance(address(this), spender) == 0),
+            "SafeERC20: approve from non-zero to non-zero allowance"
+        );
+        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, value));
+    }
+
+    function safeIncreaseAllowance(
+        IERC20 token,
+        address spender,
+        uint256 value
+    ) internal {
+        uint256 newAllowance = token.allowance(address(this), spender) + value;
+        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
+    }
+
+    function safeDecreaseAllowance(
+        IERC20 token,
+        address spender,
+        uint256 value
+    ) internal {
+        unchecked {
+            uint256 oldAllowance = token.allowance(address(this), spender);
+            require(oldAllowance >= value, "SafeERC20: decreased allowance below zero");
+            uint256 newAllowance = oldAllowance - value;
+            _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
+        }
+    }
+
+    /**
+     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement
+     * on the return value: the return value is optional (but if data is returned, it must not be false).
+     * @param token The token targeted by the call.
+     * @param data The call data (encoded using abi.encode or one of its variants).
+     */
+    function _callOptionalReturn(IERC20 token, bytes memory data) private {
+        // We need to perform a low level call here, to bypass Solidity's return data size checking mechanism, since
+        // we're implementing it ourselves. We use {Address.functionCall} to perform this call, which verifies that
+        // the target address contains contract code and also asserts for success in the low-level call.
+
+        bytes memory returndata = address(token).functionCall(data, "SafeERC20: low-level call failed");
+        if (returndata.length > 0) {
+            // Return data is optional
+            require(abi.decode(returndata, (bool)), "SafeERC20: ERC20 operation did not succeed");
+        }
+    }
+}
+
+
 // File contracts/SparkLink.sol
 
 
@@ -635,24 +820,27 @@ pragma solidity >= 0.8.4;
 
 
 
+
+
 contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     using Address for address;
     using Counters for Counters.Counter;
+    using SafeERC20 for IERC20;
     Counters.Counter private _issueIds;
     /*
     Abstract struct Issue {
         uint8 royalty_fee;
-        uint8 shilltimes;
+        uint16 shill_times;
         uint32 total_amount;
     }
     This structure records some common attributes of a series of NFTs:
         - `royalty_fee`: the proportion of royaltyes
-        - `shilltimes`: the number of times a single NFT can been shared
+        - `shill_times`: the number of times a single NFT can been shared
         - `total_amount`: the total number of NFTs in the series
     To reduce gas cost, this structure is actually stored in the `father_id` attibute of root NFT
         - 0~31  `total_amount`
-        - 48~56 `shilltimes`
-        - 57~63 `royalty_fee`
+        - 40~55 `shill_times`
+        - 56~63 `royalty_fee`
     */
 
     struct Edition {
@@ -671,7 +859,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         // - `profit`: record the profit owner can claim (include royalty fee it should conduct to its father NFT)
         uint64 father_id;
         uint128 shill_price;
-        uint8 remaining_shill_times;
+        uint16 remaining_shill_times;
         address owner;
         bytes32 ipfs_hash;
         uint128 transfer_price;
@@ -696,7 +884,8 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     event Publish(
 	    uint32 indexed issue_id,
         address indexed publisher,
-        uint64 rootNFTId
+        uint64 rootNFTId,
+        address token_addr
     );
 
     // Emit when claimProfit success
@@ -735,8 +924,11 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      * - `_royalty_fee`: The proportion of royaltyes, it represents the ratio of the father NFT's profit from the child NFT
      *                   Its value should <= 100
      * - `_shill_times`: the number of times a single NFT can been shared
-     *                   Its value should <= 255
+     *                   Its value should <= 65536
      * - `_ipfs_hash`: IPFS hash value of the URI where this NTF's metadata stores
+     *
+     *- `token_address`: list of tokens(address) can be accepted for payment.
+     *                 `A token address` can be ERC-20 token contract address or `address(0)`(ETH).
      *
      * Emits a {Publish} event.
      * - Emitted {Publish} event contains root NFT id.
@@ -744,14 +936,17 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     function publish(
         uint128 _first_sell_price,
         uint8 _royalty_fee,
-        uint8 _shill_times,
-        bytes32 _ipfs_hash
+        uint16 _shill_times,
+        bytes32 _ipfs_hash,
+        address _token_addr
     ) 
         external 
     {
         require(_royalty_fee <= 100, "SparkLink: Royalty fee should be <= 100%.");
         _issueIds.increment();
         require(_issueIds.current() <= type(uint32).max, "SparkLink: Value doesn't fit in 32 bits.");
+        if (_token_addr != address(0))
+            require(IERC20(_token_addr).totalSupply() > 0, "Not a valid ERC20 token address");
         uint32 new_issue_id = uint32(_issueIds.current());
         uint64 rootNFTId = getNftIdByEditionIdAndIssueId(new_issue_id, 1);
         require(
@@ -762,8 +957,9 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         Edition storage new_NFT = editions_by_id[rootNFTId];
         uint64 information;
         information = reWriteUint8InUint64(56, _royalty_fee, information);
-        information = reWriteUint8InUint64(48, _shill_times, information);
+        information = reWriteUint16InUint64(40, _shill_times, information);
         information += 1;
+        token_addresses[new_issue_id] = _token_addr;
         new_NFT.father_id = information;
         new_NFT.remaining_shill_times = _shill_times;
         new_NFT.shill_price = _first_sell_price;
@@ -774,7 +970,8 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         emit Publish(
             new_issue_id,
             msg.sender,
-            rootNFTId
+            rootNFTId,
+            _token_addr
         );
     }
 
@@ -799,9 +996,17 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     {
         require(isEditionExisting(_NFT_id), "SparkLink: This NFT does not exist");
         require(editions_by_id[_NFT_id].remaining_shill_times > 0, "SparkLink: There is no remaining shill time for this NFT");
-        require(msg.value == editions_by_id[_NFT_id].shill_price, "SparkLink: Wrong price");
+        address token_addr = getTokenAddrByIssueId(getIssueIdByNFTId(_NFT_id));
+        if (token_addr == address(0)){
+            require(msg.value == editions_by_id[_NFT_id].shill_price, "SparkLink: Wrong price");
+            _addProfit( _NFT_id, editions_by_id[_NFT_id].shill_price);
+        }
+        else {
+            uint256 before_balance = IERC20(token_addr).balanceOf(address(this));
+            IERC20(token_addr).safeTransferFrom(msg.sender, address(this), editions_by_id[_NFT_id].shill_price);
+            _addProfit( _NFT_id, uint256toUint128(IERC20(token_addr).balanceOf(address(this))-before_balance));
+        }
 
-        _addProfit( _NFT_id, editions_by_id[_NFT_id].shill_price);
         editions_by_id[_NFT_id].remaining_shill_times -= 1;
         _mintNFT(_NFT_id, msg.sender);
         if (editions_by_id[_NFT_id].remaining_shill_times == 0)
@@ -847,13 +1052,19 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         
         if (editions_by_id[_NFT_id].profit != 0) {
             uint128 amount = editions_by_id[_NFT_id].profit;
+            address token_addr = getTokenAddrByIssueId(getIssueIdByNFTId(_NFT_id));
             editions_by_id[_NFT_id].profit = 0;
             if (!isRootNFT(_NFT_id)) {
                 uint128 _royalty_fee = calculateFee(amount, getRoyaltyFeeByIssueId(getIssueIdByNFTId(_NFT_id)));
                 _addProfit( getFatherByNFTId(_NFT_id), _royalty_fee);
                 amount -= _royalty_fee;
             }
-            payable(ownerOf(_NFT_id)).transfer(amount);
+            if (token_addr == address(0)){
+                payable(ownerOf(_NFT_id)).transfer(amount);
+            }
+            else {
+                IERC20(token_addr).safeTransfer(ownerOf(_NFT_id), amount);
+            }
             emit Claim(
                 _NFT_id,
                 ownerOf(_NFT_id),
@@ -1068,15 +1279,28 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     }
 
     /**
+     * @dev Query supported token address of an issue.
+     *  
+     * Requirements:
+     * - `_issue_id`: The id of the issue queryed.
+     * Return supported token address of this issue.
+     * Address 0 represent ETH.
+     */
+    function getTokenAddrByIssueId(uint32 _issue_id) public view returns (address) {
+        require(isIssueExisting(_issue_id), "SparkLink: This issue is not exist.");
+        return token_addresses[_issue_id];
+    }
+
+    /**
      * @dev Query max shill times of an issue.
      *  
      * Requirements:
      * - `_issue_id`: The id of the issue queryed.
      * Return max shill times of this issue.
      */
-    function getShillTimesByIssueId(uint32 _issue_id) public view returns (uint8) {
+    function getShillTimesByIssueId(uint32 _issue_id) public view returns (uint16) {
         require(isIssueExisting(_issue_id), "SparkLink: This issue is not exist.");
-        return getUint8FromUint64(48, editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
+        return getUint16FromUint64(40, editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
     }
 
     /**
@@ -1089,6 +1313,18 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     function getTotalAmountByIssueId(uint32 _issue_id) public view returns (uint32) {
         require(isIssueExisting(_issue_id), "SparkLink: This issue is not exist.");
         return getBottomUint32FromUint64(editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
+    }
+
+    /**
+     * @dev Query supported token address of a NFT.
+     *  
+     * Requirements:
+     * - `_NFT_id`: The id of the NFT queryed.
+     * Return supported token address of this NFT.
+     * Address 0 represent ETH.
+     */
+    function getTokenAddrByNFTId(uint64 _NFT_id) public view returns (address) {
+        return getTokenAddrByIssueId(getIssueIdByNFTId(_NFT_id));
     }
 
     /**
@@ -1136,7 +1372,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      * - `_NFT_id`: The id of the NFT queryed.
      * Return remaining_shill_times of this NFT.
      */
-    function getRemainShillTimesByNFTId(uint64 _NFT_id) public view returns (uint8) {
+    function getRemainShillTimesByNFTId(uint64 _NFT_id) public view returns (uint16) {
         require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
         return editions_by_id[_NFT_id].remaining_shill_times;
     }
@@ -1234,6 +1470,8 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     // Mapping from owner to operator approvals
     mapping(address => mapping(address => bool)) private _operatorApprovals;
     mapping (uint64 => Edition) private editions_by_id;
+    // mapping from issue ID to support ERC20 token address
+    mapping(uint32 => address) private token_addresses;
 
     bytes constant private sha256MultiHash = hex"1220"; 
     bytes constant private ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -1352,8 +1590,17 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         require(_isApprovedOrOwner(_msgSender(), tokenId), "SparkLink: Transfer caller is not owner nor approved");
         require(to != address(0), "SparkLink: Transfer to the zero address");
         if (msg.sender != ownerOf(tokenId)) {
-            require(msg.value == editions_by_id[tokenId].transfer_price, "SparkLink: Price not met");
-            _addProfit(tokenId, editions_by_id[tokenId].transfer_price);
+            address token_addr = getTokenAddrByIssueId(getIssueIdByNFTId(tokenId));
+            uint128 transfer_price = editions_by_id[tokenId].transfer_price;
+            if (token_addr == address(0)){
+                require(msg.value == transfer_price, "SparkLink: Price not met");
+                _addProfit(tokenId, transfer_price);
+            }
+            else {
+                uint256 before_balance = IERC20(token_addr).balanceOf(address(this));
+                IERC20(token_addr).safeTransferFrom(msg.sender, address(this), transfer_price);
+                _addProfit(tokenId, uint256toUint128(IERC20(token_addr).balanceOf(address(this))-before_balance));
+            }
             claimProfit(tokenId);
         }
         else {
@@ -1432,7 +1679,12 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
             data8 := and(sub(shl(8, 1), 1), shr(position, data64))
         }
     }
-    
+    function getUint16FromUint64(uint8 position, uint64 data64) internal pure returns (uint16 data16) {
+        // (((1 << size) - 1) & base >> position)
+        assembly {
+            data16 := and(sub(shl(16, 1), 1), shr(position, data64))
+        }
+    }
     function getBottomUint32FromUint64(uint64 data64) internal pure returns (uint32 data32) {
         // (((1 << size) - 1) & base >> position)
         assembly {
@@ -1448,9 +1700,22 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         }
     }
 
+    function reWriteUint16InUint64(uint8 position, uint16 data16, uint64 data64) internal pure returns (uint64 boxed) {
+        assembly {
+            // mask = ~((1 << 16 - 1) << position)
+            // _box = (mask & _box) | ()data << position)
+            boxed := or( and(data64, not(shl(position, sub(shl(16, 1), 1)))), shl(position, data16))
+        }
+    }
+
     function uint256toUint64(uint256 value) internal pure returns (uint64) {
         require(value <= type(uint64).max, "SparkLink: Value doesn't fit in 64 bits");
         return uint64(value);
+    }
+
+    function uint256toUint128(uint256 value) internal pure returns (uint128) {
+        require(value <= type(uint128).max, "SparkLink: Value doesn't fit in 128 bits");
+        return uint128(value);
     }
     
     function calculateFee(uint128 _amount, uint8 _fee_percent) internal pure returns (uint128) {
