@@ -41,7 +41,8 @@ describe("SparkLink", function () {
           invalid_parameter._first_sell_price, 
           invalid_parameter._royalty_fee, 
           invalid_parameter._shill_times, 
-          invalid_parameter.ipfs_hash
+          invalid_parameter.ipfs_hash,
+          invalid_parameter.token_addr
         )).to.be.revertedWith(error_info);
       }
       // should revert with royalty fee overflow
@@ -51,7 +52,8 @@ describe("SparkLink", function () {
           invalid_parameter._first_sell_price, 
           invalid_parameter._royalty_fee, 
           invalid_parameter._shill_times, 
-          invalid_parameter.ipfs_hash
+          invalid_parameter.ipfs_hash,
+          invalid_parameter.token_addr
         )).to.be.reverted;
       }
       // should revert with shill times overflow      
@@ -61,7 +63,8 @@ describe("SparkLink", function () {
           invalid_parameter._first_sell_price, 
           invalid_parameter._royalty_fee, 
           invalid_parameter._shill_times, 
-          invalid_parameter.ipfs_hash
+          invalid_parameter.ipfs_hash,
+          invalid_parameter.token_addr
         )).to.be.reverted;
       }
       // should revert with first sell price overflow
@@ -71,7 +74,8 @@ describe("SparkLink", function () {
           invalid_parameter._first_sell_price, 
           invalid_parameter._royalty_fee, 
           invalid_parameter._shill_times, 
-          invalid_parameter.ipfs_hash
+          invalid_parameter.ipfs_hash,
+          invalid_parameter.token_addr
         )).to.be.reverted;
       }
       // should revert with ipfs hash overflow
@@ -81,7 +85,8 @@ describe("SparkLink", function () {
           invalid_parameter._first_sell_price, 
           invalid_parameter._royalty_fee, 
           invalid_parameter._shill_times, 
-          invalid_parameter.ipfs_hash
+          invalid_parameter.ipfs_hash,
+          invalid_parameter.token_addr
         )).to.be.reverted;
       }
     });

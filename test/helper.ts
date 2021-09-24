@@ -10,20 +10,41 @@ export default {
   async publish(
     contract: SparkLink,
     first_sell_price = BigNumber.from(100),
-    royalty_fee =30,
+    royalty_fee = 30,
     shill_times = 10,
     ipfs_hash = Buffer.from(spark_constant.default_hash_1._hash, 'hex'),
+    token_addr = ethers.constants.AddressZero
   ) {
     await contract.publish(
       first_sell_price,
       royalty_fee,
       shill_times,
       ipfs_hash,
+      token_addr
     );
     const publish_event = (await contract.queryFilter(contract.filters.Publish()))[0];
     return publish_event;
   },
 
+
+  // async publish_burn(
+  //   contract: SparkLink,
+  //   first_sell_price = BigNumber.from(100),
+  //   royalty_fee =30,
+  //   shill_times = 10,
+  //   ipfs_hash = Buffer.from(spark_constant.default_hash_1._hash, 'hex'),
+  //   token_addr = ethers.constants.AddressZero
+  // ) {
+  //   await contract.publish(
+  //     first_sell_price,
+  //     royalty_fee,
+  //     shill_times,
+  //     ipfs_hash,
+  //     token_addr
+  //   );
+  //   const publish_event = (await contract.queryFilter(contract.filters.Publish()))[0];
+  //   return publish_event;
+  // },
   /*
    * Returns Mint() event.
    * will call publish() if nft_id is not given.
