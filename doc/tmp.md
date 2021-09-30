@@ -1,0 +1,20 @@
+目前增加了ERC20的支持。
+新增的变化有：
+publish 多传入一个address类型的_token_addr参数
+shill_times的类型由uint8改为了uint16
+多了两个接口
+getTokenAddrByIssueId
+getTokenAddrByNFTId
+用于查询对应issue内支持的流通代币的地址
+除了今天讨论的前端的填入地址的变化之外。
+在铸造和购买两个页面都需要有approve的操作了目前。
+
+部署地址：
+rinkeby:
+0xca6090D6F006eF6Dbf7E177b0197aD12B36cd476
+matic:
+0xb42d4525841008A69E427026DF354067fD6A524f
+
+这部分的测试考虑了我们前面说过的相对比较常见的打入账户的token的数量与transfer的时候不一样的情况
+在这种情况下是work的，其他的情况我觉得就是publisher自己的锅了
+（俺去帮女友搬家了今天，嘿嘿。
