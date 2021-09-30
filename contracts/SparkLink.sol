@@ -21,6 +21,8 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     Abstract struct Issue {
         uint8 royalty_fee;
         uint16 shill_times;
+        bool is_ND;
+        bool is_NC;
         uint32 total_amount;
     }
     This structure records some common attributes of a series of NFTs:
@@ -29,6 +31,8 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         - `total_amount`: the total number of NFTs in the series
     To reduce gas cost, this structure is actually stored in the `father_id` attibute of root NFT
         - 0~31  `total_amount`
+        - 38 `is_NC`
+        - 39 `is_ND`
         - 40~55 `shill_times`
         - 56~63 `royalty_fee`
     */
@@ -72,9 +76,8 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     // Emit when `publish` success
     // - `rootNFTId`: Record the Id of root NFT given to publisher 
     event Publish(
-	    uint32 indexed issue_id,
         address indexed publisher,
-        uint64 rootNFTId,
+        uint64  indexed rootNFTId,
         address token_addr
     );
 
@@ -117,9 +120,12 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      *                   Its value should <= 65536
      * - `_ipfs_hash`: IPFS hash value of the URI where this NTF's metadata stores
      *
-     *- `token_address`: list of tokens(address) can be accepted for payment.
+     * - `token_address`: list of tokens(address) can be accepted for payment.
      *                 `A token address` can be ERC-20 token contract address or `address(0)`(ETH).
      *
+     * - `_is_NC`: 
+     * 
+     * - `_is_ND`: 
      * Emits a {Publish} event.
      * - Emitted {Publish} event contains root NFT id.
      */
@@ -128,7 +134,9 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         uint8 _royalty_fee,
         uint16 _shill_times,
         bytes32 _ipfs_hash,
-        address _token_addr
+        address _token_addr,
+        bool _is_NC,
+        bool _is_ND
     ) 
         external 
     {
@@ -148,6 +156,8 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         uint64 information;
         information = reWriteUint8InUint64(56, _royalty_fee, information);
         information = reWriteUint16InUint64(40, _shill_times, information);
+        information = reWriteBoolInUint64(38, _is_NC, information);
+        information = reWriteBoolInUint64(39, _is_ND, information);
         information += 1;
         token_addresses[new_issue_id] = _token_addr;
         new_NFT.father_id = information;
@@ -158,7 +168,6 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         _balances[msg.sender] += 1;
         emit Transfer(address(0), msg.sender, rootNFTId);
         emit Publish(
-            new_issue_id,
             msg.sender,
             rootNFTId,
             _token_addr
@@ -186,7 +195,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     {
         require(isEditionExisting(_NFT_id), "SparkLink: This NFT does not exist");
         require(editions_by_id[_NFT_id].remaining_shill_times > 0, "SparkLink: There is no remaining shill time for this NFT");
-        address token_addr = getTokenAddrByIssueId(getIssueIdByNFTId(_NFT_id));
+        address token_addr = getTokenAddrByNFTId(_NFT_id);
         if (token_addr == address(0)){
             require(msg.value == editions_by_id[_NFT_id].shill_price, "SparkLink: Wrong price");
             _addProfit( _NFT_id, editions_by_id[_NFT_id].shill_price);
@@ -242,10 +251,10 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         
         if (editions_by_id[_NFT_id].profit != 0) {
             uint128 amount = editions_by_id[_NFT_id].profit;
-            address token_addr = getTokenAddrByIssueId(getIssueIdByNFTId(_NFT_id));
+            address token_addr = getTokenAddrByNFTId(_NFT_id);
             editions_by_id[_NFT_id].profit = 0;
             if (!isRootNFT(_NFT_id)) {
-                uint128 _royalty_fee = calculateFee(amount, getRoyaltyFeeByIssueId(getIssueIdByNFTId(_NFT_id)));
+                uint128 _royalty_fee = calculateFee(amount, getRoyaltyFeeByNFTId(_NFT_id));
                 _addProfit( getFatherByNFTId(_NFT_id), _royalty_fee);
                 amount -= _royalty_fee;
             }
@@ -273,6 +282,9 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      * Emits a {SetURI} events
      */
     function setURI(uint64 _NFT_id, bytes32 ipfs_hash) public {
+        if (getIsNDByNFTId(_NFT_id)) {
+            require(_NFT_id == getRootNFTIdByNFTId(_NFT_id), "SparkLink: NFT follows the ND protocol, only the root NFT's URI can be set.");
+        }
         require(ownerOf(_NFT_id) == msg.sender, "SparkLink: Only owner can set the token URI");
         _setTokenURI(_NFT_id, ipfs_hash);
     }
@@ -416,15 +428,29 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         return string(abi.encodePacked(base, encoded_hash));
     }
 
+
     /**
-     * @dev Query is issue exist.
+     * @dev Query is issue follows the NC protocol by any NFT belongs to this issue.
      *
      * Requirements:
-     * - `_issue_id`: The id of the issue queryed.
+     * - `_NFT_id`: The id of the edition queryed.
      * Return a bool value.
      */
-    function isIssueExisting(uint32 _issue_id) public view returns (bool) {
-        return isEditionExisting(getRootNFTIdByIssueId(_issue_id));
+    function getIsNCByNFTId(uint64 _NFT_id) public view returns (bool) {
+        require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
+        return getBoolFromUint64(38, editions_by_id[getRootNFTIdByNFTId(_NFT_id)].father_id);
+    }
+
+    /**
+     * @dev Query is issue follows the ND protocol by any NFT belongs to this issue.
+     *
+     * Requirements:
+     * - `_NFT_id`: The id of the edition queryed.
+     * Return a bool value.
+     */
+    function getIsNDByNFTId(uint64 _NFT_id) public view returns (bool) {
+        require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
+        return getBoolFromUint64(39, editions_by_id[getRootNFTIdByNFTId(_NFT_id)].father_id);
     }
 
     /**
@@ -450,63 +476,50 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
         uint128 amount = editions_by_id[_NFT_id].profit;
         if (!isRootNFT(_NFT_id)) {
-            uint128 _royalty_fee = calculateFee(editions_by_id[_NFT_id].profit, getRoyaltyFeeByIssueId(getIssueIdByNFTId(_NFT_id)));
+            uint128 _royalty_fee = calculateFee(editions_by_id[_NFT_id].profit, getRoyaltyFeeByNFTId(_NFT_id));
             amount -= _royalty_fee;
         }
         return amount;
     }
 
     /**
-     * @dev Query royalty fee percent of an issue.
+     * @dev Query royalty fee percent of an issue by any NFT belongs to this issue.
      *  
      * Requirements:
-     * - `_issue_id`: The id of the issue queryed.
+     * - `_NFT_id`: The id of the NFT queryed.
      * Return royalty fee percent of this issue.
      */
-    function getRoyaltyFeeByIssueId(uint32 _issue_id) public view returns (uint8) {
-        require(isIssueExisting(_issue_id), "SparkLink: This issue is not exist.");
-        return getUint8FromUint64(56, editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
+    function getRoyaltyFeeByNFTId(uint64 _NFT_id) public view returns (uint8) {
+        require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
+        return getUint8FromUint64(56, editions_by_id[getRootNFTIdByNFTId(_NFT_id)].father_id);
     }
 
     /**
-     * @dev Query supported token address of an issue.
+     * @dev Query max shill times of an issue by any NFT belongs to this issue.
      *  
      * Requirements:
-     * - `_issue_id`: The id of the issue queryed.
-     * Return supported token address of this issue.
-     * Address 0 represent ETH.
-     */
-    function getTokenAddrByIssueId(uint32 _issue_id) public view returns (address) {
-        require(isIssueExisting(_issue_id), "SparkLink: This issue is not exist.");
-        return token_addresses[_issue_id];
-    }
-
-    /**
-     * @dev Query max shill times of an issue.
-     *  
-     * Requirements:
-     * - `_issue_id`: The id of the issue queryed.
+     * - `_NFT_id`: The id of the NFT queryed.
      * Return max shill times of this issue.
      */
-    function getShillTimesByIssueId(uint32 _issue_id) public view returns (uint16) {
-        require(isIssueExisting(_issue_id), "SparkLink: This issue is not exist.");
-        return getUint16FromUint64(40, editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
+    function getShillTimesByNFTId(uint64 _NFT_id) public view returns (uint16) {
+        require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
+        return getUint16FromUint64(40, editions_by_id[getRootNFTIdByNFTId(_NFT_id)].father_id);
     }
 
     /**
-     * @dev Query total NFT number of an issue.
+     * @dev Query total NFT number of a issue by any NFT belongs to this issue.
      *  
      * Requirements:
-     * - `_issue_id`: The id of the issue queryed.
+     * - `_NFT_id`: The id of the NFT queryed.
      * Return total NFT number of this issue.
      */
-    function getTotalAmountByIssueId(uint32 _issue_id) public view returns (uint32) {
-        require(isIssueExisting(_issue_id), "SparkLink: This issue is not exist.");
-        return getBottomUint32FromUint64(editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id);
+    function getTotalAmountByNFTId(uint64 _NFT_id) public view returns (uint32) {
+        require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
+        return getBottomUint32FromUint64(editions_by_id[getRootNFTIdByNFTId(_NFT_id)].father_id);
     }
 
     /**
-     * @dev Query supported token address of a NFT.
+     * @dev Query supported token address of a issue by any NFT belongs to this issue.
      *  
      * Requirements:
      * - `_NFT_id`: The id of the NFT queryed.
@@ -514,7 +527,8 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      * Address 0 represent ETH.
      */
     function getTokenAddrByNFTId(uint64 _NFT_id) public view returns (address) {
-        return getTokenAddrByIssueId(getIssueIdByNFTId(_NFT_id));
+        require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
+        return token_addresses[uint32(_NFT_id>>32)];
     }
 
     /**
@@ -582,18 +596,6 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         }
         return depth;
     }
-    
-    /**
-     * @dev Calculate NFT id by issue id and edition id.
-     *  
-     * Requirements:
-     * - `_issue_id`: The issue id of the NFT caller want to get.
-     * - `_edition_id`: The edition id of the NFT caller want to get.
-     * Return NFT id.
-     */
-    function getNftIdByEditionIdAndIssueId(uint32 _issue_id, uint32 _edition_id) internal pure returns (uint64) {
-        return (uint64(_issue_id)<<32)|uint64(_edition_id);
-    }
 
     /**
      * @dev Query is this NFT is root NFT by check is its edition id is 1.
@@ -607,14 +609,14 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     }
 
     /**
-     * @dev Query root NFT id by issue id.
+     * @dev Query root NFT id by NFT id.
      *  
      * Requirements:
-     * - `_issue_id`: The id of the issue queryed.
+     * - `_NFT_id`: The id of the NFT queryed.
      * Return a bool value to indicate wether this NFT is root NFT.
      */
-    function getRootNFTIdByIssueId(uint32 _issue_id) public pure returns (uint64) {
-        return (uint64(_issue_id)<<32 | uint64(1));
+    function getRootNFTIdByNFTId(uint64 _NFT_id) public pure returns (uint64) {
+        return ((_NFT_id>>32)<<32 | uint64(1));
     }
 
     /**
@@ -624,17 +626,6 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      */
     function getLossRatio() public pure returns (uint8) {
         return loss_ratio;
-    }
-    
-    /**
-     * @dev Calculate issue id by NFT id.
-     *  
-     * Requirements:
-     * - `_NFT_id`: The NFT id of the NFT caller want to get.
-     * Return issue id.
-     */
-    function getIssueIdByNFTId(uint64 _NFT_id) public pure returns (uint32) {
-        return uint32(_NFT_id >> 32);
     }
     
     /**
@@ -730,16 +721,15 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         internal 
         returns (uint64) 
     {
-        uint32 _issue_id = getIssueIdByNFTId(_NFT_id);
-        _addTotalAmount(_issue_id);
-        uint32 new_edition_id = getTotalAmountByIssueId(_issue_id);
-        uint64 new_NFT_id = getNftIdByEditionIdAndIssueId(_issue_id, new_edition_id);
+        _addTotalAmount(_NFT_id);
+        uint32 new_edition_id = getTotalAmountByNFTId(_NFT_id);
+        uint64 new_NFT_id = getNftIdByEditionIdAndIssueId(uint32(_NFT_id>>32), new_edition_id);
         require(
             _checkOnERC721Received(address(0), _owner, new_NFT_id, ""),
             "SparkLink: Transfer to non ERC721Receiver implementer"
         );
         Edition storage new_NFT = editions_by_id[new_NFT_id];
-        new_NFT.remaining_shill_times = getShillTimesByIssueId(_issue_id);
+        new_NFT.remaining_shill_times = getShillTimesByNFTId(_NFT_id);
         new_NFT.father_id = _NFT_id;
         new_NFT.shill_price = calculateFee(editions_by_id[_NFT_id].shill_price, loss_ratio);
         new_NFT.owner = _owner;
@@ -780,7 +770,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         require(_isApprovedOrOwner(_msgSender(), tokenId), "SparkLink: Transfer caller is not owner nor approved");
         require(to != address(0), "SparkLink: Transfer to the zero address");
         if (msg.sender != ownerOf(tokenId)) {
-            address token_addr = getTokenAddrByIssueId(getIssueIdByNFTId(tokenId));
+            address token_addr = getTokenAddrByNFTId(tokenId);
             uint128 transfer_price = editions_by_id[tokenId].transfer_price;
             if (token_addr == address(0)){
                 require(msg.value == transfer_price, "SparkLink: Price not met");
@@ -848,9 +838,9 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         editions_by_id[_NFT_id].profit = editions_by_id[_NFT_id].profit+_increase;
     }
 
-    function _addTotalAmount(uint32 _issue_id) internal {
-        require(getTotalAmountByIssueId(_issue_id) < type(uint32).max, "SparkLink: There is no left in this issue.");
-        editions_by_id[getRootNFTIdByIssueId(_issue_id)].father_id += 1;
+    function _addTotalAmount(uint64 _NFT_Id) internal {
+        require(getTotalAmountByNFTId(_NFT_Id) < type(uint32).max, "SparkLink: There is no left in this issue.");
+        editions_by_id[getRootNFTIdByNFTId(_NFT_Id)].father_id += 1;
     }
 
     function _isApprovedOrOwner(address spender, uint64 tokenId) internal view virtual returns (bool) {
@@ -862,6 +852,26 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     function _baseURI() internal pure returns (string memory) {
         return "https://ipfs.io/ipfs/";
     } 
+
+
+    /**
+     * @dev Calculate NFT id by issue id and edition id.
+     *  
+     * Requirements:
+     * - `_issue_id`: The issue id of the NFT caller want to get.
+     * - `_edition_id`: The edition id of the NFT caller want to get.
+     * Return NFT id.
+     */
+    function getNftIdByEditionIdAndIssueId(uint32 _issue_id, uint32 _edition_id) internal pure returns (uint64) {
+        return (uint64(_issue_id)<<32)|uint64(_edition_id);
+    }
+
+    function getBoolFromUint64(uint8 position, uint64 data64) internal pure returns (bool flag) {
+        // (((1 << size) - 1) & base >> position)
+        assembly {
+            flag := and(1, shr(position, data64))
+        }
+    }
 
     function getUint8FromUint64(uint8 position, uint64 data64) internal pure returns (uint8 data8) {
         // (((1 << size) - 1) & base >> position)
@@ -881,12 +891,21 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
             data32 := and(sub(shl(32, 1), 1), data64)
         }
     }
-    
-    function reWriteUint8InUint64(uint8 position, uint8 data8, uint64 data64) internal pure returns (uint64 boxed) {
+
+    function reWriteBoolInUint64(uint8 position, bool flag, uint64 data64) internal pure returns (uint64 boxed) {
         assembly {
             // mask = ~((1 << 8 - 1) << position)
             // _box = (mask & _box) | ()data << position)
-            boxed := or( and(data64, not(shl(position, sub(shl(8, 1), 1)))), shl(position, data8))
+            boxed := or( and(data64, not(shl(position, 1))), shl(position, flag))
+        }
+    }
+
+    
+    function reWriteUint8InUint64(uint8 position, uint8 flag, uint64 data64) internal pure returns (uint64 boxed) {
+        assembly {
+            // mask = ~((1 << 8 - 1) << position)
+            // _box = (mask & _box) | ()data << position)
+            boxed := or(and(data64, not(shl(position, 1))), shl(position, flag))
         }
     }
 
