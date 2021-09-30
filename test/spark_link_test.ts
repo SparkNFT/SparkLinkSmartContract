@@ -44,7 +44,9 @@ describe("SparkLink", function () {
           invalid_parameter._royalty_fee, 
           invalid_parameter._shill_times, 
           invalid_parameter.ipfs_hash,
-          invalid_parameter.token_addr
+          invalid_parameter.token_addr,
+          invalid_parameter.is_NC,
+          invalid_parameter.is_ND
         )).to.be.revertedWith(error_info);
       }
       // should revert with royalty fee overflow
@@ -55,7 +57,9 @@ describe("SparkLink", function () {
           invalid_parameter._royalty_fee, 
           invalid_parameter._shill_times, 
           invalid_parameter.ipfs_hash,
-          invalid_parameter.token_addr
+          invalid_parameter.token_addr,
+          invalid_parameter.is_NC,
+          invalid_parameter.is_ND
         )).to.be.reverted;
       }
       // should revert with shill times overflow      
@@ -66,7 +70,9 @@ describe("SparkLink", function () {
           invalid_parameter._royalty_fee, 
           invalid_parameter._shill_times, 
           invalid_parameter.ipfs_hash,
-          invalid_parameter.token_addr
+          invalid_parameter.token_addr,
+          invalid_parameter.is_NC,
+          invalid_parameter.is_ND
         )).to.be.reverted;
       }
       // should revert with first sell price overflow
@@ -77,7 +83,9 @@ describe("SparkLink", function () {
           invalid_parameter._royalty_fee, 
           invalid_parameter._shill_times, 
           invalid_parameter.ipfs_hash,
-          invalid_parameter.token_addr
+          invalid_parameter.token_addr,
+          invalid_parameter.is_NC,
+          invalid_parameter.is_ND
         )).to.be.reverted;
       }
       // should revert with ipfs hash overflow
@@ -88,7 +96,9 @@ describe("SparkLink", function () {
           invalid_parameter._royalty_fee, 
           invalid_parameter._shill_times, 
           invalid_parameter.ipfs_hash,
-          invalid_parameter.token_addr
+          invalid_parameter.token_addr,
+          invalid_parameter.is_NC,
+          invalid_parameter.is_ND
         )).to.be.reverted;
       }
     });
@@ -96,15 +106,13 @@ describe("SparkLink", function () {
     it('should publish an issue and emit event successfully', async () => {
       const event = await helper.publish(SparkLink)
 
-      expect(event.args.issue_id).to.eq(1);
       expect(event.args.publisher).to.hexEqual(owner.address);
       let root_nft_id = BigNumber.from("0x100000000").add(1);
-      let issue_id = await SparkLink.getIssueIdByNFTId(root_nft_id);
       expect(event.args.rootNFTId).to.eq(BigNumber.from(root_nft_id));
       expect(await SparkLink.tokenURI(root_nft_id)).to.eq(spark_constant.default_hash_1._URI);
-      expect(await SparkLink.getShillTimesByIssueId(issue_id)).to.eq(10);
+      expect(await SparkLink.getShillTimesByNFTId(root_nft_id)).to.eq(10);
       expect(await SparkLink.getShillPriceByNFTId(root_nft_id)).to.eq(BigNumber.from(100));
-      expect(await SparkLink.getTotalAmountByIssueId(issue_id)).to.eq(1);
+      expect(await SparkLink.getTotalAmountByNFTId(root_nft_id)).to.eq(1);
       expect(await SparkLink.getRemainShillTimesByNFTId(root_nft_id)).to.eq(10);
     });    
 
@@ -122,15 +130,13 @@ describe("SparkLink", function () {
         test_token_parameter.ipfs_hash,
         testTokenAContract.address
         );
-      expect(event.args.issue_id).to.eq(1);
       expect(event.args.publisher).to.hexEqual(owner.address);
       let root_nft_id = BigNumber.from("0x100000000").add(1);
-      let issue_id = await SparkLink.getIssueIdByNFTId(root_nft_id);
       expect(event.args.rootNFTId).to.eq(BigNumber.from(root_nft_id));
       expect(await SparkLink.tokenURI(root_nft_id)).to.eq(spark_constant.default_hash_1._URI);
-      expect(await SparkLink.getShillTimesByIssueId(issue_id)).to.eq(10);
+      expect(await SparkLink.getShillTimesByNFTId(root_nft_id)).to.eq(10);
       expect(await SparkLink.getShillPriceByNFTId(root_nft_id)).to.eq(BigNumber.from(100));
-      expect(await SparkLink.getTotalAmountByIssueId(issue_id)).to.eq(1);
+      expect(await SparkLink.getTotalAmountByNFTId(root_nft_id)).to.eq(1);
       expect(await SparkLink.getRemainShillTimesByNFTId(root_nft_id)).to.eq(10);
     });
 
@@ -148,15 +154,13 @@ describe("SparkLink", function () {
         test_token_parameter.ipfs_hash,
         BurnTokenContract.address
         );
-      expect(event.args.issue_id).to.eq(1);
       expect(event.args.publisher).to.hexEqual(owner.address);
       let root_nft_id = BigNumber.from("0x100000000").add(1);
-      let issue_id = await SparkLink.getIssueIdByNFTId(root_nft_id);
       expect(event.args.rootNFTId).to.eq(BigNumber.from(root_nft_id));
       expect(await SparkLink.tokenURI(root_nft_id)).to.eq(spark_constant.default_hash_1._URI);
-      expect(await SparkLink.getShillTimesByIssueId(issue_id)).to.eq(10);
+      expect(await SparkLink.getShillTimesByNFTId(root_nft_id)).to.eq(10);
       expect(await SparkLink.getShillPriceByNFTId(root_nft_id)).to.eq(BigNumber.from(100));
-      expect(await SparkLink.getTotalAmountByIssueId(issue_id)).to.eq(1);
+      expect(await SparkLink.getTotalAmountByNFTId(root_nft_id)).to.eq(1);
       expect(await SparkLink.getRemainShillTimesByNFTId(root_nft_id)).to.eq(10);
     });
 
@@ -233,8 +237,7 @@ describe("SparkLink", function () {
       const shill_price = BigNumber.from(100);
       const publish_event = await helper.publish(SparkLink, shill_price);
       const root_nft_id = publish_event.args.rootNFTId;
-      const issue_id = await SparkLink.getIssueIdByNFTId(root_nft_id);
-      const shill_times = await SparkLink.getShillTimesByIssueId(issue_id);
+      const shill_times = await SparkLink.getShillTimesByNFTId(root_nft_id);
       for (let i = 1; i < shill_times; i +=1) {
         await helper.accept_shill(SparkLink, other, root_nft_id, shill_price);
       }
@@ -250,9 +253,8 @@ describe("SparkLink", function () {
       const publish_event = await helper.publish(
           SparkLink, special_parameters._first_sell_price, special_parameters._royalty_fee ,special_parameters._shill_times , special_parameters.ipfs_hash);
       const root_nft_id = publish_event.args.rootNFTId;
-      const issue_id = await SparkLink.getIssueIdByNFTId(root_nft_id);
       const shill_price = await SparkLink.getShillPriceByNFTId(root_nft_id);
-      const shill_times = await SparkLink.getShillTimesByIssueId(issue_id);
+      const shill_times = await SparkLink.getShillTimesByNFTId(root_nft_id);
       for (let i = 1; i < shill_times; i +=1) {
         await helper.accept_shill(SparkLink, other, root_nft_id, shill_price);
       }
@@ -268,9 +270,8 @@ describe("SparkLink", function () {
       const publish_event = await helper.publish(
           SparkLink, special_parameters._first_sell_price, special_parameters._royalty_fee ,special_parameters._shill_times , special_parameters.ipfs_hash);
       const root_nft_id = publish_event.args.rootNFTId;
-      const issue_id = await SparkLink.getIssueIdByNFTId(root_nft_id);
       const shill_price = await SparkLink.getShillPriceByNFTId(root_nft_id);
-      const shill_times = await SparkLink.getShillTimesByIssueId(issue_id);
+      const shill_times = await SparkLink.getShillTimesByNFTId(root_nft_id);
       for (let i = 1; i < shill_times; i +=1) {
         await helper.accept_shill(SparkLink, other, root_nft_id, shill_price);
       }
@@ -286,9 +287,8 @@ describe("SparkLink", function () {
       const publish_event = await helper.publish(
           SparkLink, special_parameters._first_sell_price, special_parameters._royalty_fee ,special_parameters._shill_times , special_parameters.ipfs_hash);
       const root_nft_id = publish_event.args.rootNFTId;
-      const issue_id = await SparkLink.getIssueIdByNFTId(root_nft_id);
       const shill_price = await SparkLink.getShillPriceByNFTId(root_nft_id);
-      const shill_times = await SparkLink.getShillTimesByIssueId(issue_id);
+      const shill_times = await SparkLink.getShillTimesByNFTId(root_nft_id);
       await SparkLink.connect(other).acceptShill(root_nft_id, { value: shill_price })
       const transfer_event = (await SparkLink.queryFilter(SparkLink.filters.Transfer(ethers.constants.AddressZero, owner.address, null)))[0];
       expect(transfer_event.args.from).to.eq(ethers.constants.AddressZero);
@@ -302,8 +302,7 @@ describe("SparkLink", function () {
       let shill_price = BigNumber.from(100);
       const publish_event = await helper.publish(SparkLink, shill_price);
       const root_nft_id = publish_event.args.rootNFTId;
-      let issue_id = await SparkLink.getIssueIdByNFTId(root_nft_id);
-      let royalty_fee = await SparkLink.getRoyaltyFeeByIssueId(issue_id);
+      let royalty_fee = await SparkLink.getRoyaltyFeeByNFTId(root_nft_id);
       let sub_royalty_fee = (BigNumber.from(100)).sub(royalty_fee);
       let father_nft_id = root_nft_id;
       let new_nft_id = (await helper.accept_shill(SparkLink, other, root_nft_id, shill_price)).args.tokenId;
@@ -335,8 +334,7 @@ describe("SparkLink", function () {
       const base_account_index = 3;
       let shill_price = BigNumber.from(100);
       const root_nft_id = publish_event.args.rootNFTId;
-      let issue_id = await SparkLink.getIssueIdByNFTId(root_nft_id);
-      let royalty_fee = await SparkLink.getRoyaltyFeeByIssueId(issue_id);
+      let royalty_fee = await SparkLink.getRoyaltyFeeByNFTId(root_nft_id);
       let sub_royalty_fee = (BigNumber.from(100)).sub(royalty_fee);
       let father_nft_id = root_nft_id;
       await testTokenAContract.connect(owner).approve(owner.address, spark_constant.testTokenMintAmount);
@@ -373,8 +371,7 @@ describe("SparkLink", function () {
       const base_account_index = 3;
       let shill_price = BigNumber.from(100);
       const root_nft_id = publish_event.args.rootNFTId;
-      let issue_id = await SparkLink.getIssueIdByNFTId(root_nft_id);
-      let royalty_fee = await SparkLink.getRoyaltyFeeByIssueId(issue_id);
+      let royalty_fee = await SparkLink.getRoyaltyFeeByNFTId(root_nft_id);
       let sub_royalty_fee = (BigNumber.from(100)).sub(royalty_fee);
       let father_nft_id = root_nft_id;
       await BurnTokenContract.connect(owner).transfer( other.address,shill_price.mul(2));
@@ -479,8 +476,7 @@ describe("SparkLink", function () {
       const publish_event = await helper.publish(SparkLink, shill_prices[0]);
       // length is loop_times+1
       nft_ids.push(publish_event.args.rootNFTId);
-      let issue_id = await SparkLink.getIssueIdByNFTId(nft_ids[0]);
-      let royalty_fee = await SparkLink.getRoyaltyFeeByIssueId(issue_id);
+      let royalty_fee = await SparkLink.getRoyaltyFeeByNFTId(publish_event.args.rootNFTId);
       for (let i = 0; i < loop_times; i += 1){
         nft_ids.push((await helper.accept_shill(SparkLink, accounts[base_account_index+i], nft_ids[i], shill_prices[i])).args.tokenId);
         shill_prices.push(shill_prices[i].mul(spark_constant.loss_ratio).div(100));
@@ -534,8 +530,7 @@ describe("SparkLink", function () {
         );
       // length is loop_times+1
       nft_ids.push(publish_event.args.rootNFTId);
-      let issue_id = await SparkLink.getIssueIdByNFTId(nft_ids[0]);
-      let royalty_fee = await SparkLink.getRoyaltyFeeByIssueId(issue_id);
+      let royalty_fee = await SparkLink.getRoyaltyFeeByNFTId(publish_event.args.rootNFTId);
       for (let i = 0; i < loop_times; i += 1){
         await testTokenAContract.connect(owner).transfer(accounts[base_account_index+i].address, shill_prices[i]);
         await testTokenAContract.connect(accounts[base_account_index+i]).approve(SparkLink.address, shill_prices[i]);
@@ -580,10 +575,9 @@ describe("SparkLink", function () {
         SparkLink, special_parameters._first_sell_price, special_parameters._royalty_fee ,special_parameters._shill_times , special_parameters.ipfs_hash);
       // length is loop_times+1
       nft_ids.push(publish_event.args.rootNFTId);
-      let issue_id = await SparkLink.getIssueIdByNFTId(nft_ids[0]);   
       let first_sell_price = await SparkLink.getShillPriceByNFTId(publish_event.args.rootNFTId);
       shill_prices.push(first_sell_price);
-      let royalty_fee = await SparkLink.getRoyaltyFeeByIssueId(issue_id);
+      let royalty_fee = await SparkLink.getRoyaltyFeeByNFTId(publish_event.args.rootNFTId);
       for (let i = 0; i < loop_times; i += 1){
         nft_ids.push((await helper.accept_shill(SparkLink, accounts[base_account_index+i], nft_ids[i], shill_prices[i])).args.tokenId);
         shill_prices.push(shill_prices[i].mul(spark_constant.loss_ratio).div(100));
@@ -791,8 +785,7 @@ describe("SparkLink", function () {
       const base_account_index = 2;
       let publish_event = await helper.publish(SparkLink);
       const root_nft_id = publish_event.args.rootNFTId;
-      const issue_id = await SparkLink.getIssueIdByNFTId(root_nft_id);
-      const royalty_fee = await SparkLink.getRoyaltyFeeByIssueId(issue_id);
+      const royalty_fee = await SparkLink.getRoyaltyFeeByNFTId(publish_event.args.rootNFTId);
       let accept_shill_event = await helper.accept_shill(SparkLink, accounts[2], root_nft_id);
       let nft_id = accept_shill_event.args.tokenId;
       const price_base = BigNumber.from(100);
@@ -857,8 +850,7 @@ describe("SparkLink", function () {
       const caller = accounts[1];
       const base_account_index = 2;
       const root_nft_id = publish_event.args.rootNFTId;
-      const issue_id = await SparkLink.getIssueIdByNFTId(root_nft_id);
-      const royalty_fee = await SparkLink.getRoyaltyFeeByIssueId(issue_id);
+      const royalty_fee = await SparkLink.getRoyaltyFeeByNFTId(publish_event.args.rootNFTId);
       await testTokenAContract.connect(owner).transfer(accounts[2].address, test_token_parameter._first_sell_price);
       await testTokenAContract.connect(accounts[2]).approve(SparkLink.address, test_token_parameter._first_sell_price);
       let accept_shill_event = await helper.accept_shill(SparkLink, accounts[2], root_nft_id);
@@ -999,6 +991,27 @@ describe("SparkLink", function () {
       const tokenId = publish_event.args.rootNFTId;
       const error_info = "SparkLink: Only owner can set the token URI";
       await expect(SparkLink.connect(caller).setURI(tokenId, Buffer.from(spark_constant.hash_2._hash, "hex"))).to.be.revertedWith(error_info);
+    })
+    it ("should setURI reverted with ND attribute", async () => {
+      const caller = accounts[1];
+      const other = accounts[2];
+      const valid_parameter = spark_constant.valid_publish_parameters_with_ND;
+      const publish_event = await helper.publish(
+        SparkLink,
+        valid_parameter._first_sell_price, 
+        valid_parameter._royalty_fee, 
+        valid_parameter._shill_times, 
+        valid_parameter.ipfs_hash,
+        valid_parameter.token_addr,
+        valid_parameter.is_NC,
+        valid_parameter.is_ND
+      );
+      const root_nft_id = publish_event.args.rootNFTId;
+      await SparkLink.connect(other).acceptShill(root_nft_id, {value: 100});
+      const transfer_event = (await SparkLink.queryFilter(SparkLink.filters.Transfer(ethers.constants.AddressZero, other.address, null)))[0];;
+      const tokenId = transfer_event.args.tokenId;
+      const error_info = "SparkLink: NFT follows the ND protocol, only the root NFT's URI can be set.";
+      await expect(SparkLink.connect(other).setURI(tokenId, Buffer.from(spark_constant.hash_2._hash, "hex"))).to.be.revertedWith(error_info);
     })
   })
 

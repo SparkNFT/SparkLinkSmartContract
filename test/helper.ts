@@ -13,14 +13,18 @@ export default {
     royalty_fee = 30,
     shill_times = 10,
     ipfs_hash = Buffer.from(spark_constant.default_hash_1._hash, 'hex'),
-    token_addr = ethers.constants.AddressZero
+    token_addr = ethers.constants.AddressZero,
+    is_NC = false,
+    is_ND = false
   ) {
     await contract.publish(
       first_sell_price,
       royalty_fee,
       shill_times,
       ipfs_hash,
-      token_addr
+      token_addr,
+      is_NC,
+      is_ND
     );
     const publish_event = (await contract.queryFilter(contract.filters.Publish()))[0];
     return publish_event;
