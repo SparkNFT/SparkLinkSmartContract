@@ -11,8 +11,10 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
+contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
     using Address for address;
     using Counters for Counters.Counter;
     using SafeERC20 for IERC20;
@@ -103,7 +105,9 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     /**
      * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
      */
-    constructor() {
+    constructor(address routerAddress) {
+        IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(routerAddress);
+        uniswapV2Router = _uniswapV2Router;
         _name = "SparkLink";
         _symbol = "SPL";
     } 
@@ -336,6 +340,15 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         emit DeterminePriceAndApprove(_NFT_id, _price, _to);
     }
 
+    function setDAOFee(uint8 _DAO_fee) public onlyOwner {
+        require(_DAO_fee <= MAX_DAO_FEE, "SparkLink: DAO fee can not exceed 2%");
+        DAO_fee = _DAO_fee;
+    }
+
+    function setDAORouter(address _DAO_router) public onlyOwner {
+        DAO_router = _DAO_router;
+    }
+
     /**
      * @dev See {IERC721-approve}.
      */
@@ -476,8 +489,8 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
         uint128 amount = editions_by_id[_NFT_id].profit;
         if (!isRootNFT(_NFT_id)) {
-            uint128 _royalty_fee = calculateFee(editions_by_id[_NFT_id].profit, getRoyaltyFeeByNFTId(_NFT_id));
-            amount -= _royalty_fee;
+            uint128 _total_fee = calculateFee(editions_by_id[_NFT_id].profit, getRoyaltyFeeByNFTId(_NFT_id)+DAO_fee);            
+            amount -= _total_fee;
         }
         return amount;
     }
@@ -643,7 +656,11 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
 
     // Token symbol
     string private _symbol;
-    uint8 constant private loss_ratio = 90;
+    uint8 constant public loss_ratio = 90;
+    uint8 public DAO_fee = 2;
+    uint8 public constant MAX_DAO_FEE = 2;
+    address public DAO_router;
+    IUniswapV2Router02 public immutable uniswapV2Router;
     // Mapping owner address to token count
     mapping(address => uint64) private _balances;
     // Mapping from token ID to approved address
@@ -656,6 +673,25 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
 
     bytes constant private sha256MultiHash = hex"1220"; 
     bytes constant private ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+    function swapTokensForEth(address token_addr, uint128 token_amount) private {
+        // generate the uniswap pair path of token -> weth
+        address[] memory path = new address[](2);
+        path[0] = token_addr;
+        path[1] = uniswapV2Router.WETH();
+
+        IERC20(token_addr).approve(address(uniswapV2Router), token_amount);
+
+        // make the swap
+        uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+            token_amount,
+            0, // accept any amount of ETH
+            path,
+            address(this),
+            block.timestamp
+        );
+    }
+
 
      /**
      * @dev Internal function to invoke {IERC721Receiver-onERC721Received} on a target address.
