@@ -108,6 +108,11 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
         uint8 new_DAO_fee
     );
 
+    event SetLoosRatio(
+        uint8 old_loss_ratio,
+        uint8 new_loss_ratio
+    );
+
     event SetDAORouter(
         address old_router_address,
         address new_router_address
@@ -369,7 +374,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
     }
 
     function setDAOFee(uint8 _DAO_fee) public onlyOwner {
-        require(_DAO_fee <= MAX_DAO_FEE, "SparkLink: DAO fee can not exceed 2%");
+        require(_DAO_fee <= MAX_DAO_FEE, "SparkLink: DAO fee can not exceed 5%");
         emit SetDAOFee(DAO_fee, _DAO_fee);
         DAO_fee = _DAO_fee;
     }
@@ -379,6 +384,10 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
         DAO_router = _DAO_router;
     }
 
+    function setLoosRatio(uint8 _loss_ratio) public onlyOwner {
+        emit SetLoosRatio(loss_ratio, _loss_ratio);
+        loss_ratio = _loss_ratio;
+    }
     /**
      * @dev See {IERC721-approve}.
      */
@@ -667,7 +676,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
      *  
      * Return loss ratio of this contract.
      */
-    function getLossRatio() public pure returns (uint8) {
+    function getLossRatio() public view returns (uint8) {
         return loss_ratio;
     }
     
@@ -686,7 +695,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
 
     // Token symbol
     string private _symbol;
-    uint8 constant public loss_ratio = 90;
+    uint8 public loss_ratio = 50;
     uint8 public DAO_fee = 2;
     uint8 public constant MAX_DAO_FEE = 2;
     address public DAO_router;
