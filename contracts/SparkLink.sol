@@ -12,9 +12,9 @@ import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
-import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
+import "./uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "./uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
+import './uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
     using Address for address;
     using Counters for Counters.Counter;
@@ -527,6 +527,10 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
     function getProfitByNFTId(uint64 _NFT_id) public view returns (uint128){
         require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
         uint128 amount = editions_by_id[_NFT_id].profit;
+         if (DAO_fee != 0) {
+                uint128 _DAO_fee = calculateFee(amount, DAO_fee);
+                amount -= _DAO_fee;
+            }
         if (!isRootNFT(_NFT_id)) {
             uint128 _total_fee = calculateFee(editions_by_id[_NFT_id].profit, getRoyaltyFeeByNFTId(_NFT_id)+DAO_fee);            
             amount -= _total_fee;
