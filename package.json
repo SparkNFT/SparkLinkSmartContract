@@ -13,6 +13,7 @@
     "ethereum-waffle": "^3.4.0",
     "ethers": "^5.4.4",
     "hardhat": "^2.6.0",
+    "hardhat-deploy": "^0.9.4",
     "hardhat-gas-reporter": "^1.0.4",
     "ts-node": "^10.2.1",
     "typechain": "^5.1.2",
@@ -21,6 +22,7 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.2.0",
     "@uniswap/v2-core": "^1.0.1",
-    "@uniswap/v2-periphery": "^1.1.0-beta.0"
+    "@uniswap/v2-periphery": "^1.1.0-beta.0",
+    "weth": "^1.0.4"
   }
 }
