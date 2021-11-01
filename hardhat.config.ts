@@ -3,7 +3,8 @@ import '@typechain/hardhat'
 import '@nomiclabs/hardhat-ethers'
 import "@nomiclabs/hardhat-waffle";
 import "hardhat-gas-reporter";
-
+import "hardhat-deploy"
+import "hardhat-deploy-ethers"
 import chain from "./chain";
 
 // This is a sample Hardhat task. To learn how to create your own go to
@@ -40,5 +41,15 @@ export default {
     typechain: {
         outDir: 'artifacts/typechain',
         target: 'ethers-v5',
-    }
+    },
+    external: {
+      contracts: [
+        {
+          artifacts: 'node_modules/@uniswap/v2-core/build',
+        },
+        {
+          artifacts: 'node_modules/@uniswap/v2-periphery/build',
+        },
+      ],
+    },
 };

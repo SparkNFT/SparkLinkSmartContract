@@ -1,6 +1,6 @@
 import { use, expect } from "chai";
 import { solidity } from "ethereum-waffle";
-import { ethers } from "hardhat";
+import { artifacts, ethers } from "hardhat";
 import { SparkLink } from "../artifacts/typechain/SparkLink";
 import { TestTokenA } from "../artifacts/typechain/TestTokenA";
 import { BurnToken } from "../artifacts/typechain/BurnToken";
@@ -10,6 +10,8 @@ import spark_constant from "./spark_constant";
 import helper from "./helper";
 import { utils } from "ethers";
 import exp from "constants";
+import jsonABI_UniswapV2Factory from "@uniswap/v2-core/build/UniswapV2Factory.json";
+import { connect } from "http2";
 
 use(solidity);
 
@@ -19,6 +21,16 @@ describe("SparkLink", function () {
   let SparkLink: SparkLink;
   let owner: SignerWithAddress;
   let accounts: SignerWithAddress[];
+  let UniswapV2FactoryInterface = new ethers.utils.Interface(jsonABI_UniswapV2Factory.abi);
+  
+  before(async () => {
+    accounts = await ethers.getSigners();
+    owner = accounts[0];
+    let UniswapV2FactoryFactory = new ethers.ContractFactory(UniswapV2FactoryInterface, jsonABI_UniswapV2Factory.evm.bytecode.object, owner);
+    let UniswapV2FactoryContract = await UniswapV2FactoryFactory.deploy(owner.address);
+    let UniswapV2Factory = (await UniswapV2FactoryContract.deployed()).connect(owner);
+    console.log("Contract address" + UniswapV2Factory.address);
+  });
 
   beforeEach(async () => {
     accounts = await ethers.getSigners();
