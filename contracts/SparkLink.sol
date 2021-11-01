@@ -12,9 +12,9 @@ import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "./uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
-import './uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
+import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
     using Address for address;
     using Counters for Counters.Counter;
