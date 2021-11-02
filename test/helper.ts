@@ -75,5 +75,6 @@ export default {
     await contract.connect(caller_acount).setURI(NFT_id, Buffer.from(ipfs_hash, 'hex'));
     const SetURI_event = (await contract.queryFilter(contract.filters.SetURI(NFT_id, null, null)))[0];
     return SetURI_event;
-  }
+  },
+
 }

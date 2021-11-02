@@ -11,32 +11,46 @@ import helper from "./helper";
 import { utils } from "ethers";
 import exp from "constants";
 import jsonABI_UniswapV2Factory from "@uniswap/v2-core/build/UniswapV2Factory.json";
+import jsonABI_UniswapV2Router02 from "@uniswap/v2-periphery/build/UniswapV2Router02.json";
+import jsonABI_WETH9 from "@uniswap/v2-periphery/build/WETH9.json";
 import { connect } from "http2";
-
+import { Contract } from "hardhat/internal/hardhat-network/stack-traces/model";
+import { Address } from "cluster";
 use(solidity);
-
-
 
 describe("SparkLink", function () {
   let SparkLink: SparkLink;
   let owner: SignerWithAddress;
   let accounts: SignerWithAddress[];
   let UniswapV2FactoryInterface = new ethers.utils.Interface(jsonABI_UniswapV2Factory.abi);
-  
+  let UniswapV2Factory;
+  let UniswapV2FactoryAddress:String;
+  let UniswapV2Router02Interface = new ethers.utils.Interface(jsonABI_UniswapV2Router02.abi);
+  let UniswapV2Router02;
+  let UniswapV2Router02Address:String;
+  let WETH9Interface = new ethers.utils.Interface(jsonABI_WETH9.abi);
+  let WETH9;
   before(async () => {
     accounts = await ethers.getSigners();
     owner = accounts[0];
     let UniswapV2FactoryFactory = new ethers.ContractFactory(UniswapV2FactoryInterface, jsonABI_UniswapV2Factory.evm.bytecode.object, owner);
     let UniswapV2FactoryContract = await UniswapV2FactoryFactory.deploy(owner.address);
-    let UniswapV2Factory = (await UniswapV2FactoryContract.deployed()).connect(owner);
-    console.log("Contract address" + UniswapV2Factory.address);
+    UniswapV2Factory = (await UniswapV2FactoryContract.deployed()).connect(owner);
+    let WETH9Factory = new ethers.ContractFactory(WETH9Interface, jsonABI_WETH9.evm.bytecode.object, owner);
+    let WETH9Contract = await WETH9Factory.deploy();
+    WETH9 = (await WETH9Contract.deployed()).connect(owner)
+    let UniswapV2Router02Factory = new ethers.ContractFactory(UniswapV2Router02Interface, jsonABI_UniswapV2Router02.evm.bytecode.object, owner);
+    let UniswapV2Router02Contract = await UniswapV2Router02Factory.deploy(UniswapV2Factory.address, WETH9.address);
+    let UniswapV2Router02 = (await UniswapV2Router02Contract.deployed()).connect(owner);
+    UniswapV2FactoryAddress = UniswapV2Factory.address;
+    UniswapV2Router02Address =  UniswapV2Router02.address;
   });
 
   beforeEach(async () => {
     accounts = await ethers.getSigners();
     owner = accounts[0];
     const SparkLinkFactory = await ethers.getContractFactory("SparkLink");
-    SparkLink = (await SparkLinkFactory.deploy()) as SparkLink;
+    SparkLink = (await SparkLinkFactory.deploy(owner.address, UniswapV2Router02Address, UniswapV2FactoryAddress)) as SparkLink;
     SparkLink = (await SparkLink.deployed()).connect(owner);
   });
 
