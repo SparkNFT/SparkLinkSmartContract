@@ -67,7 +67,7 @@ export default {
 
   async claim_profit(contract: SparkLink, caller_account: SignerWithAddress, NFT_id: BigNumber) {
     await contract.connect(caller_account).claimProfit(NFT_id);
-    const claim_event = (await contract.queryFilter(contract.filters.Claim(NFT_id, await contract.ownerOf(NFT_id), null)))[0];
+    const claim_event = (await contract.queryFilter(contract.filters.Claim(NFT_id, await contract.ownerOf(NFT_id))))[0];
     return claim_event;
   },
 

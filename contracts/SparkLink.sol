@@ -277,14 +277,17 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
             uint128 amount = editions_by_id[_NFT_id].profit;
             address token_addr = getTokenAddrByNFTId(_NFT_id);
             if (DAO_fee != 0) {
-                uint128 _DAO_fee = calculateFee(amount, DAO_fee);
-                amount -= _DAO_fee;
-                if (uniswapV2Factory.getPair(token_addr, uniswapV2Router.WETH()) == address(0)) {
-                    IERC20(token_addr).safeTransfer(DAO_router,_DAO_fee);
+                uint128 DAO_amount = calculateFee(amount, DAO_fee);
+                amount -= DAO_amount;
+                if (token_addr == address(0)) {
+                    payable(DAO_router).transfer(DAO_amount);
+                }
+                else if (uniswapV2Factory.getPair(token_addr, uniswapV2Router.WETH()) == address(0)) {
+                    IERC20(token_addr).safeTransfer(DAO_router,DAO_amount);
                 }
                 else {
                     uint256 beforeBalance = address(this).balance;
-                    _swapTokensForEth(token_addr, _DAO_fee);
+                    _swapTokensForEth(token_addr, DAO_amount);
                     uint256 afterBalance = address(this).balance;
                     payable(DAO_router).transfer(afterBalance-beforeBalance);
                 }
@@ -385,6 +388,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
     }
 
     function setLoosRatio(uint8 _loss_ratio) public onlyOwner {
+        require(_loss_ratio <= MAX_LOSS_RATIO, "SparkLink: Loss ratio can not below 50%");
         emit SetLoosRatio(loss_ratio, _loss_ratio);
         loss_ratio = _loss_ratio;
     }
@@ -528,11 +532,11 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
         require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
         uint128 amount = editions_by_id[_NFT_id].profit;
          if (DAO_fee != 0) {
-                uint128 _DAO_fee = calculateFee(amount, DAO_fee);
-                amount -= _DAO_fee;
-            }
+                uint128 DAO_amount = calculateFee(amount, DAO_fee);
+                amount -= DAO_amount;
+        }
         if (!isRootNFT(_NFT_id)) {
-            uint128 _total_fee = calculateFee(editions_by_id[_NFT_id].profit, getRoyaltyFeeByNFTId(_NFT_id)+DAO_fee);            
+            uint128 _total_fee = calculateFee(amount, getRoyaltyFeeByNFTId(_NFT_id));            
             amount -= _total_fee;
         }
         return amount;
@@ -702,6 +706,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
     uint8 public loss_ratio = 50;
     uint8 public DAO_fee = 2;
     uint8 public constant MAX_DAO_FEE = 2;
+    uint8 public constant MAX_LOSS_RATIO = 50;
     address public DAO_router;
     IUniswapV2Router02 public immutable uniswapV2Router;
     IUniswapV2Factory public immutable uniswapV2Factory;
@@ -812,6 +817,9 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
         new_NFT.remaining_shill_times = getShillTimesByNFTId(_NFT_id);
         new_NFT.father_id = _NFT_id;
         new_NFT.shill_price = calculateFee(editions_by_id[_NFT_id].shill_price, loss_ratio);
+        if (new_NFT.shill_price == 0) {
+            new_NFT.shill_price = editions_by_id[_NFT_id].shill_price;
+        }
         new_NFT.owner = _owner;
         new_NFT.ipfs_hash = editions_by_id[_NFT_id].ipfs_hash;
         _balances[_owner] += 1;

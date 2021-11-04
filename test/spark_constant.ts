@@ -24,7 +24,7 @@ const hash_3 = {
 };
 
 const valid_publish_parameters = { 
-    _first_sell_price: BigNumber.from(100),
+    _first_sell_price: BigNumber.from(10000000000),
     _royalty_fee: 30,
     _shill_times: 10,
     ipfs_hash: Buffer.from('4f0b018a3b003b7c99f97427f410cafe5707ba18d28b13cd8bfa59e08e110380', 'hex'),
@@ -87,7 +87,7 @@ const invalid_publish_ipfs_hash_overflow = {
     is_ND:false
 }
 const publish_one_hundred_royalty_fee = {
-    _first_sell_price: BigNumber.from(1000),
+    _first_sell_price: BigNumber.from(100000000),
     _royalty_fee: 100,
     _shill_times: 12,
     ipfs_hash: Buffer.from('4f0b018a3b003b7c99f97427f410cafe5707ba18d28b13cd8bfa59e08e110380', 'hex'),
@@ -140,11 +140,13 @@ const overflow_ipfs_hash_value = Buffer.from('4f0b018a3b003b7c99f97427f410cafe57
 const label1 = "huluwahuluwa yiketengshangqigegua"
 const label2 = "葫芦娃葫芦娃，一颗藤上七个瓜"
 const label3 = "伞兵UP"
-const loss_ratio = 90;
+const loss_ratio = 50;
+const DAO_fee = 2;
 export default {
     airpod_ctor_parameters,
     default_hash_1,
     loss_ratio,
+    DAO_fee,
     publish_one_hundred_royalty_fee,
     publish_zero_royalty_fee,
     invalid_publish_royalty_fee,
