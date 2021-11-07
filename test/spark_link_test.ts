@@ -872,6 +872,7 @@ describe("SparkLink", function () {
           owner.address,
           null
         )))[i-base_account_index+1];
+        transfer_royalty_price = transfer_royalty_price.sub(transfer_royalty_price.mul(spark_constant.DAO_fee).div(100));
         expect(claim_father_event.args.amount).to.eq(transfer_royalty_price);
         const after_father_balance = await ethers.provider.getBalance(owner.address);
         const after_owner_balance = await ethers.provider.getBalance(accounts[i].address);
@@ -909,8 +910,9 @@ describe("SparkLink", function () {
       await SparkLink.connect(caller).claimProfit(root_nft_id);
       for (let i = base_account_index; i < loop_times; i += 1) {
         let transfer_price = price_base.add(price_increase.mul(i));
-        let transfer_royalty_price = transfer_price.mul(royalty_fee).div(100);
-        let transfer_remain_price = transfer_price.sub(transfer_royalty_price);
+        let exclude_DAO_transfer_price = transfer_price.sub(transfer_price.mul(spark_constant.DAO_fee).div(100));
+        let transfer_royalty_price = exclude_DAO_transfer_price.mul(royalty_fee).div(100);
+        let transfer_remain_price = exclude_DAO_transfer_price.sub(transfer_royalty_price);
         await SparkLink.connect(accounts[i]).determinePriceAndApprove(nft_id, transfer_price, accounts[i+1].address);
         await testTokenAContract.connect(owner).transfer(accounts[i+1].address, price_base.add(price_increase.mul(i)));
         await testTokenAContract.connect(accounts[i+1]).approve(SparkLink.address, price_base.add(price_increase.mul(i)));
@@ -941,6 +943,7 @@ describe("SparkLink", function () {
           owner.address,
           null
         )))[i-base_account_index+1];
+        transfer_royalty_price = transfer_royalty_price.sub(transfer_royalty_price.mul(spark_constant.DAO_fee).div(100));
         expect(claim_father_event.args.amount).to.eq(transfer_royalty_price);
         const after_father_balance = await testTokenAContract.balanceOf(owner.address);
         const after_owner_balance = await testTokenAContract.balanceOf(accounts[i].address);
