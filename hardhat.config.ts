@@ -3,13 +3,8 @@ import '@typechain/hardhat'
 import '@nomiclabs/hardhat-ethers'
 import "@nomiclabs/hardhat-waffle";
 import "hardhat-gas-reporter";
-<<<<<<< HEAD
-import "hardhat-deploy"
-import "hardhat-deploy-ethers"
-=======
 import 'hardhat-deploy';
 import 'hardhat-deploy-ethers';
->>>>>>> master
 import chain from "./chain";
 
 // This is a sample Hardhat task. To learn how to create your own go to
