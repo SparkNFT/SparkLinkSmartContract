@@ -286,10 +286,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
                     IERC20(token_addr).safeTransfer(DAO_router,DAO_amount);
                 }
                 else {
-                    uint256 beforeBalance = address(this).balance;
                     _swapTokensForEth(token_addr, DAO_amount);
-                    uint256 afterBalance = address(this).balance;
-                    payable(DAO_router).transfer(afterBalance-beforeBalance);
                 }
             }
             editions_by_id[_NFT_id].profit = 0;
