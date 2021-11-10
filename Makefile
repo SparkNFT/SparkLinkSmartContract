@@ -22,5 +22,10 @@ rinkeby:
 matic:
 	yarn hardhat run scripts/deploy.ts --network matic
 
+BSC:
+	yarn hardhat run scripts/deploy.ts --network BSC
+
+hh:
+	yarn hardhat run scripts/deploy.ts 
 flatten:
 	yarn hardhat flatten ./contracts/SparkLink.sol > publish.sol

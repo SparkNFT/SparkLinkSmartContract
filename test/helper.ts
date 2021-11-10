@@ -2,7 +2,9 @@ import { ethers } from "hardhat";
 import { BigNumber } from "@ethersproject/bignumber";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { SparkLink } from "../artifacts/typechain/SparkLink";
+// import {}
 import spark_constant from "./spark_constant";
+import { Address } from "cluster";
 export default {
   /*
    * Returns Publish() event
@@ -77,4 +79,7 @@ export default {
     return SetURI_event;
   },
 
+  // async addLiquidity(token_addr: Address, caller_account: SignerWithAddress, ) {
+
+  // }
 }
