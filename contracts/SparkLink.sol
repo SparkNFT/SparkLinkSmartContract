@@ -383,6 +383,12 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
         emit SetDAORouter(DAO_router, _DAO_router);
         DAO_router = _DAO_router;
     }
+    function setUniswapV2Router(address _uniswapV2Router) public onlyOwner {
+        uniswapV2Router =  IUniswapV2Router02(_uniswapV2Router);
+    }
+    function setUniswapV2Factory(address _uniswapV2Factory) public onlyOwner {
+        uniswapV2Factory = IUniswapV2Factory(_uniswapV2Factory);
+    }
 
     function setLoosRatio(uint8 _loss_ratio) public onlyOwner {
         require(_loss_ratio <= MAX_LOSS_RATIO, "SparkLink: Loss ratio can not below 50%");
@@ -705,8 +711,8 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
     uint8 public constant MAX_DAO_FEE = 2;
     uint8 public constant MAX_LOSS_RATIO = 50;
     address public DAO_router;
-    IUniswapV2Router02 public immutable uniswapV2Router;
-    IUniswapV2Factory public immutable uniswapV2Factory;
+    IUniswapV2Router02 public  uniswapV2Router;
+    IUniswapV2Factory public  uniswapV2Factory;
     // Mapping owner address to token count
     mapping(address => uint64) private _balances;
     // Mapping from token ID to approved address
