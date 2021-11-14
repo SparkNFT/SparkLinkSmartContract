@@ -25,6 +25,9 @@ matic:
 BSC:
 	yarn hardhat run scripts/deploy.ts --network BSC
 
+ETH:
+	yarn hardhat run scripts/deploy.ts --network ETH
+
 hh:
 	yarn hardhat run scripts/deploy.ts 
 flatten:

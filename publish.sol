@@ -809,6 +809,245 @@ library SafeERC20 {
 }
 
 
+// File @openzeppelin/contracts/access/Ownable.sol@v4.3.0
+
+
+
+pragma solidity ^0.8.0;
+
+/**
+ * @dev Contract module which provides a basic access control mechanism, where
+ * there is an account (an owner) that can be granted exclusive access to
+ * specific functions.
+ *
+ * By default, the owner account will be the one that deploys the contract. This
+ * can later be changed with {transferOwnership}.
+ *
+ * This module is used through inheritance. It will make available the modifier
+ * `onlyOwner`, which can be applied to your functions to restrict their use to
+ * the owner.
+ */
+abstract contract Ownable is Context {
+    address private _owner;
+
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    /**
+     * @dev Initializes the contract setting the deployer as the initial owner.
+     */
+    constructor() {
+        _setOwner(_msgSender());
+    }
+
+    /**
+     * @dev Returns the address of the current owner.
+     */
+    function owner() public view virtual returns (address) {
+        return _owner;
+    }
+
+    /**
+     * @dev Throws if called by any account other than the owner.
+     */
+    modifier onlyOwner() {
+        require(owner() == _msgSender(), "Ownable: caller is not the owner");
+        _;
+    }
+
+    /**
+     * @dev Leaves the contract without owner. It will not be possible to call
+     * `onlyOwner` functions anymore. Can only be called by the current owner.
+     *
+     * NOTE: Renouncing ownership will leave the contract without an owner,
+     * thereby removing any functionality that is only available to the owner.
+     */
+    function renounceOwnership() public virtual onlyOwner {
+        _setOwner(address(0));
+    }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     * Can only be called by the current owner.
+     */
+    function transferOwnership(address newOwner) public virtual onlyOwner {
+        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        _setOwner(newOwner);
+    }
+
+    function _setOwner(address newOwner) private {
+        address oldOwner = _owner;
+        _owner = newOwner;
+        emit OwnershipTransferred(oldOwner, newOwner);
+    }
+}
+
+
+// File @uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol@v1.1.0-beta.0
+
+pragma solidity >=0.6.2;
+
+interface IUniswapV2Router01 {
+    function factory() external pure returns (address);
+    function WETH() external pure returns (address);
+
+    function addLiquidity(
+        address tokenA,
+        address tokenB,
+        uint amountADesired,
+        uint amountBDesired,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline
+    ) external returns (uint amountA, uint amountB, uint liquidity);
+    function addLiquidityETH(
+        address token,
+        uint amountTokenDesired,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline
+    ) external payable returns (uint amountToken, uint amountETH, uint liquidity);
+    function removeLiquidity(
+        address tokenA,
+        address tokenB,
+        uint liquidity,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline
+    ) external returns (uint amountA, uint amountB);
+    function removeLiquidityETH(
+        address token,
+        uint liquidity,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline
+    ) external returns (uint amountToken, uint amountETH);
+    function removeLiquidityWithPermit(
+        address tokenA,
+        address tokenB,
+        uint liquidity,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline,
+        bool approveMax, uint8 v, bytes32 r, bytes32 s
+    ) external returns (uint amountA, uint amountB);
+    function removeLiquidityETHWithPermit(
+        address token,
+        uint liquidity,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline,
+        bool approveMax, uint8 v, bytes32 r, bytes32 s
+    ) external returns (uint amountToken, uint amountETH);
+    function swapExactTokensForTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts);
+    function swapTokensForExactTokens(
+        uint amountOut,
+        uint amountInMax,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts);
+    function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
+        external
+        payable
+        returns (uint[] memory amounts);
+    function swapTokensForExactETH(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
+        external
+        returns (uint[] memory amounts);
+    function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
+        external
+        returns (uint[] memory amounts);
+    function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline)
+        external
+        payable
+        returns (uint[] memory amounts);
+
+    function quote(uint amountA, uint reserveA, uint reserveB) external pure returns (uint amountB);
+    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) external pure returns (uint amountOut);
+    function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) external pure returns (uint amountIn);
+    function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts);
+    function getAmountsIn(uint amountOut, address[] calldata path) external view returns (uint[] memory amounts);
+}
+
+
+// File @uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol@v1.1.0-beta.0
+
+pragma solidity >=0.6.2;
+
+interface IUniswapV2Router02 is IUniswapV2Router01 {
+    function removeLiquidityETHSupportingFeeOnTransferTokens(
+        address token,
+        uint liquidity,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline
+    ) external returns (uint amountETH);
+    function removeLiquidityETHWithPermitSupportingFeeOnTransferTokens(
+        address token,
+        uint liquidity,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline,
+        bool approveMax, uint8 v, bytes32 r, bytes32 s
+    ) external returns (uint amountETH);
+
+    function swapExactTokensForTokensSupportingFeeOnTransferTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external;
+    function swapExactETHForTokensSupportingFeeOnTransferTokens(
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external payable;
+    function swapExactTokensForETHSupportingFeeOnTransferTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external;
+}
+
+
+// File @uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol@v1.0.1
+
+pragma solidity >=0.5.0;
+
+interface IUniswapV2Factory {
+    event PairCreated(address indexed token0, address indexed token1, address pair, uint);
+
+    function feeTo() external view returns (address);
+    function feeToSetter() external view returns (address);
+
+    function getPair(address tokenA, address tokenB) external view returns (address pair);
+    function allPairs(uint) external view returns (address pair);
+    function allPairsLength() external view returns (uint);
+
+    function createPair(address tokenA, address tokenB) external returns (address pair);
+
+    function setFeeTo(address) external;
+    function setFeeToSetter(address) external;
+}
+
+
 // File contracts/SparkLink.sol
 
 
@@ -823,18 +1062,23 @@ pragma solidity >= 0.8.4;
 
 
 
-contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
+
+
+
+
+contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
     using Address for address;
     using Counters for Counters.Counter;
     using SafeERC20 for IERC20;
     Counters.Counter private _issueIds;
     /*
     Abstract struct Issue {
-        uint8 royalty_fee;
-        uint16 shill_times;
+        uint32 total_amount;
+        bool is_free
         bool is_ND;
         bool is_NC;
-        uint32 total_amount;
+        uint16 shill_times;
+        uint8 royalty_fee;
     }
     This structure records some common attributes of a series of NFTs:
         - `royalty_fee`: the proportion of royaltyes
@@ -842,6 +1086,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         - `total_amount`: the total number of NFTs in the series
     To reduce gas cost, this structure is actually stored in the `father_id` attibute of root NFT
         - 0~31  `total_amount`
+        - 37 `is_free`
         - 38 `is_NC`
         - 39 `is_ND`
         - 40~55 `shill_times`
@@ -910,11 +1155,36 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         uint64 indexed NFT_id,
         string content
     );
+
+    event SetDAOFee(
+        uint8 old_DAO_fee,
+        uint8 new_DAO_fee
+    );
+
+    event SetLoosRatio(
+        uint8 old_loss_ratio,
+        uint8 new_loss_ratio
+    );
+
+    event SetDAORouter01(
+        address old_router_address,
+        address new_router_address
+    );
+
+    event SetDAORouter02(
+        address old_router_address,
+        address new_router_address
+    );
+
     //----------------------------------------------------------------------------------------------------
     /**
      * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
      */
-    constructor() {
+    constructor(address DAO_router_address01,address DAO_router_address02, address uniswapRouterAddress, address factoryAddress) {
+        uniswapV2Router =  IUniswapV2Router02(uniswapRouterAddress);
+        uniswapV2Factory = IUniswapV2Factory(factoryAddress);
+        DAO_router01 = DAO_router_address01;
+        DAO_router02 = DAO_router_address02;
         _name = "SparkLink";
         _symbol = "SPL";
     } 
@@ -934,6 +1204,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      * - `token_address`: list of tokens(address) can be accepted for payment.
      *                 `A token address` can be ERC-20 token contract address or `address(0)`(ETH).
      *
+     * - `_is_free`:
      * - `_is_NC`: 
      * 
      * - `_is_ND`: 
@@ -946,6 +1217,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         uint16 _shill_times,
         bytes32 _ipfs_hash,
         address _token_addr,
+        bool _is_free,
         bool _is_NC,
         bool _is_ND
     ) 
@@ -967,6 +1239,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         uint64 information;
         information = reWriteUint8InUint64(56, _royalty_fee, information);
         information = reWriteUint16InUint64(40, _shill_times, information);
+        information = reWriteBoolInUint64(37, _is_free, information);
         information = reWriteBoolInUint64(38, _is_NC, information);
         information = reWriteBoolInUint64(39, _is_ND, information);
         information += 1;
@@ -1006,17 +1279,18 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     {
         require(isEditionExisting(_NFT_id), "SparkLink: This NFT does not exist");
         require(editions_by_id[_NFT_id].remaining_shill_times > 0, "SparkLink: There is no remaining shill time for this NFT");
-        address token_addr = getTokenAddrByNFTId(_NFT_id);
-        if (token_addr == address(0)){
-            require(msg.value == editions_by_id[_NFT_id].shill_price, "SparkLink: Wrong price");
-            _addProfit( _NFT_id, editions_by_id[_NFT_id].shill_price);
+        if (!getIsFreeByNFTId(_NFT_id)||!isRootNFT(_NFT_id)){
+            address token_addr = getTokenAddrByNFTId(_NFT_id);
+            if (token_addr == address(0)){
+                require(msg.value == editions_by_id[_NFT_id].shill_price, "SparkLink: Wrong price");
+                _addProfit( _NFT_id, editions_by_id[_NFT_id].shill_price);
+            }
+            else {
+                uint256 before_balance = IERC20(token_addr).balanceOf(address(this));
+                IERC20(token_addr).safeTransferFrom(msg.sender, address(this), editions_by_id[_NFT_id].shill_price);
+                _addProfit( _NFT_id, uint256toUint128(IERC20(token_addr).balanceOf(address(this))-before_balance));
+            }
         }
-        else {
-            uint256 before_balance = IERC20(token_addr).balanceOf(address(this));
-            IERC20(token_addr).safeTransferFrom(msg.sender, address(this), editions_by_id[_NFT_id].shill_price);
-            _addProfit( _NFT_id, uint256toUint128(IERC20(token_addr).balanceOf(address(this))-before_balance));
-        }
-
         editions_by_id[_NFT_id].remaining_shill_times -= 1;
         _mintNFT(_NFT_id, msg.sender);
         if (editions_by_id[_NFT_id].remaining_shill_times == 0)
@@ -1063,10 +1337,23 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         if (editions_by_id[_NFT_id].profit != 0) {
             uint128 amount = editions_by_id[_NFT_id].profit;
             address token_addr = getTokenAddrByNFTId(_NFT_id);
+            if (DAO_fee != 0) {
+                uint128 DAO_amount = calculateFee(amount, DAO_fee);
+                amount -= DAO_amount;
+                if (token_addr == address(0)) {
+                    payable(DAO_router01).transfer(DAO_amount);
+                }
+                else if (uniswapV2Factory.getPair(token_addr, uniswapV2Router.WETH()) == address(0)) {
+                    IERC20(token_addr).safeTransfer(DAO_router02,DAO_amount);
+                }
+                else {
+                    _swapTokensForEth(token_addr, DAO_amount);
+                }
+            }
             editions_by_id[_NFT_id].profit = 0;
             if (!isRootNFT(_NFT_id)) {
                 uint128 _royalty_fee = calculateFee(amount, getRoyaltyFeeByNFTId(_NFT_id));
-                _addProfit( getFatherByNFTId(_NFT_id), _royalty_fee);
+                _addProfit(getFatherByNFTId(_NFT_id), _royalty_fee);
                 amount -= _royalty_fee;
             }
             if (token_addr == address(0)){
@@ -1098,6 +1385,18 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         }
         require(ownerOf(_NFT_id) == msg.sender, "SparkLink: Only owner can set the token URI");
         _setTokenURI(_NFT_id, ipfs_hash);
+    }
+
+     /**
+     * @dev update token URI.
+     *
+     * Requirements:
+     *
+     * - `_NFT_id`: transferred token id.
+     */
+    function updateURI(uint64 _NFT_id) public{
+        require(ownerOf(_NFT_id) == msg.sender, "SparkLink: Only owner can update the token URI");
+        editions_by_id[_NFT_id].ipfs_hash = editions_by_id[getRootNFTIdByNFTId(_NFT_id)].ipfs_hash;
     }
 
     function label(uint64 _NFT_id, string memory content) public {
@@ -1147,6 +1446,34 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         emit DeterminePriceAndApprove(_NFT_id, _price, _to);
     }
 
+    function setDAOFee(uint8 _DAO_fee) public onlyOwner {
+        require(_DAO_fee <= MAX_DAO_FEE, "SparkLink: DAO fee can not exceed 5%");
+        emit SetDAOFee(DAO_fee, _DAO_fee);
+        DAO_fee = _DAO_fee;
+    }
+
+    function setDAORouter01(address _DAO_router01) public onlyOwner {
+        emit SetDAORouter01(DAO_router01, _DAO_router01);
+        DAO_router01 = _DAO_router01;
+    }
+
+    function setDAORouter02(address _DAO_router02) public onlyOwner {
+        emit SetDAORouter01(DAO_router02, _DAO_router02);
+        DAO_router02 = _DAO_router02;
+    }
+
+    function setUniswapV2Router(address _uniswapV2Router) public onlyOwner {
+        uniswapV2Router =  IUniswapV2Router02(_uniswapV2Router);
+    }
+    function setUniswapV2Factory(address _uniswapV2Factory) public onlyOwner {
+        uniswapV2Factory = IUniswapV2Factory(_uniswapV2Factory);
+    }
+
+    function setLoosRatio(uint8 _loss_ratio) public onlyOwner {
+        require(_loss_ratio <= MAX_LOSS_RATIO, "SparkLink: Loss ratio can not below 50%");
+        emit SetLoosRatio(loss_ratio, _loss_ratio);
+        loss_ratio = _loss_ratio;
+    }
     /**
      * @dev See {IERC721-approve}.
      */
@@ -1198,7 +1525,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     }
 
     /**
-     * @dev See {IERC721Metadata-name}.
+     *                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @dev See {IERC721Metadata-name}.
      */
     function name() public view virtual override returns (string memory) {
         return _name;
@@ -1209,6 +1536,55 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      */
     function symbol() public view virtual override returns (string memory) {
         return _symbol;
+    }
+    
+    /**
+     * @dev Query NFT information set.
+     *
+     * Requirements:
+     * - `_NFT_id`: The id of the edition queryed.
+     * Return :
+     * - `issue_information`: For root NFT it stores issue abstract sturcture
+     * - 0~31   `total_amount`
+     * - 37     `is_free`
+     * - 38     `is_NC`
+     * - 39     `is_ND`
+     * - 40~55  `shill_times`
+     * - 56~63 `royalty_fee`
+     * - `father_id`: For root NFT it stores issue abstract sturcture
+     *                For other NFTs its stores the NFT Id of which NFT it `acceptShill` from
+     * - `shill_price`: The price should be paid when others `accpetShill` from this NFT
+     * - `remaining_shill_times`: The initial value is the shilltimes of the issue it belongs to
+     *                      When others `acceptShill` from this NFT, it will subtract one until its value is 0  
+     * - `owner`: record the owner of this NFT
+     * - `transfer_price`: The initial value is zero
+     *                  Set by `determinePrice` or `determinePriceAndApprove` before `transferFrom`
+     *                  It will be checked wether equal to msg.value when `transferFrom` is called
+     *                  After `transferFrom` this value will be set to zero
+     * - `profit`: record the profit owner can claim (include royalty fee it should conduct to its father NFT)
+     * - `metadata`: IPFS hash value of the URI where this NTF's metadata stores
+     */
+
+    function getNFTInfoByNFTID(uint64 _NFT_id) 
+        public view  
+        returns (
+            uint64 issue_information,
+            uint64 father_id,
+            uint128 shill_price,
+            uint16 remain_shill_times,
+            uint128 profit,
+            string memory metadata
+            ) 
+    {
+        require(isEditionExisting(_NFT_id), "SparkLink: Approved query for nonexistent token");
+        return(
+            editions_by_id[getRootNFTIdByNFTId(_NFT_id)].father_id,
+            getFatherByNFTId(_NFT_id),
+            getShillPriceByNFTId(_NFT_id),
+            getRemainShillTimesByNFTId(_NFT_id),
+            getProfitByNFTId(_NFT_id),
+            tokenURI(_NFT_id)
+        );
     }
 
     /**
@@ -1232,13 +1608,23 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      */
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
         require(isEditionExisting(uint256toUint64(tokenId)), "SparkLink: URI query for nonexistent token");
-        
         bytes32 _ipfs_hash = editions_by_id[uint256toUint64(tokenId)].ipfs_hash;
         string memory encoded_hash = _toBase58String(_ipfs_hash);
         string memory base = _baseURI();
         return string(abi.encodePacked(base, encoded_hash));
     }
 
+  /**
+     * @dev Query is issue free for first lever buyer.
+     *
+     * Requirements:
+     * - `_NFT_id`: The id of the edition queryed.
+     * Return a bool value.
+     */
+    function getIsFreeByNFTId(uint64 _NFT_id) public view returns (bool) {
+        require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
+        return getBoolFromUint64(37, editions_by_id[getRootNFTIdByNFTId(_NFT_id)].father_id);
+    }
 
     /**
      * @dev Query is issue follows the NC protocol by any NFT belongs to this issue.
@@ -1286,9 +1672,13 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
     function getProfitByNFTId(uint64 _NFT_id) public view returns (uint128){
         require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
         uint128 amount = editions_by_id[_NFT_id].profit;
+         if (DAO_fee != 0) {
+                uint128 DAO_amount = calculateFee(amount, DAO_fee);
+                amount -= DAO_amount;
+        }
         if (!isRootNFT(_NFT_id)) {
-            uint128 _royalty_fee = calculateFee(editions_by_id[_NFT_id].profit, getRoyaltyFeeByNFTId(_NFT_id));
-            amount -= _royalty_fee;
+            uint128 _total_fee = calculateFee(amount, getRoyaltyFeeByNFTId(_NFT_id));            
+            amount -= _total_fee;
         }
         return amount;
     }
@@ -1352,7 +1742,9 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      */
     function getFatherByNFTId(uint64 _NFT_id) public view returns (uint64) {
         require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
-        require(!isRootNFT(_NFT_id), "SparkLink: Root NFT doesn't have father NFT.");
+        if (isRootNFT(_NFT_id)) {
+            return 0;
+        }
         return editions_by_id[_NFT_id].father_id;
     }    
     
@@ -1377,7 +1769,10 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      */
     function getShillPriceByNFTId(uint64 _NFT_id) public view returns (uint128) {
         require(isEditionExisting(_NFT_id), "SparkLink: Edition is not exist.");
-        return editions_by_id[_NFT_id].shill_price;
+        if (getIsFreeByNFTId(_NFT_id)&&isRootNFT(_NFT_id))
+            return 0;
+        else
+            return editions_by_id[_NFT_id].shill_price;
     }
 
     /**
@@ -1435,7 +1830,7 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
      *  
      * Return loss ratio of this contract.
      */
-    function getLossRatio() public pure returns (uint8) {
+    function getLossRatio() public view returns (uint8) {
         return loss_ratio;
     }
     
@@ -1454,7 +1849,14 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
 
     // Token symbol
     string private _symbol;
-    uint8 constant private loss_ratio = 90;
+    uint8 public loss_ratio = 50;
+    uint8 public DAO_fee = 2;
+    uint8 public constant MAX_DAO_FEE = 2;
+    uint8 public constant MAX_LOSS_RATIO = 50;
+    address public DAO_router01;
+    address public DAO_router02;
+    IUniswapV2Router02 public  uniswapV2Router;
+    IUniswapV2Factory public  uniswapV2Factory;
     // Mapping owner address to token count
     mapping(address => uint64) private _balances;
     // Mapping from token ID to approved address
@@ -1467,6 +1869,25 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
 
     bytes constant private sha256MultiHash = hex"1220"; 
     bytes constant private ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+    function _swapTokensForEth(address token_addr, uint128 token_amount) private {
+        // generate the uniswap pair path of token -> weth
+        address[] memory path = new address[](2);
+        path[0] = token_addr;
+        path[1] = uniswapV2Router.WETH();
+
+        IERC20(token_addr).approve(address(uniswapV2Router), token_amount);
+
+        // make the swap
+        uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+            token_amount,
+            0, // accept any amount of ETH
+            path,
+            DAO_router01,
+            block.timestamp
+        );
+    }
+
 
      /**
      * @dev Internal function to invoke {IERC721Receiver-onERC721Received} on a target address.
@@ -1542,7 +1963,13 @@ contract SparkLink is Context, ERC165, IERC721, IERC721Metadata{
         Edition storage new_NFT = editions_by_id[new_NFT_id];
         new_NFT.remaining_shill_times = getShillTimesByNFTId(_NFT_id);
         new_NFT.father_id = _NFT_id;
-        new_NFT.shill_price = calculateFee(editions_by_id[_NFT_id].shill_price, loss_ratio);
+        if (getIsFreeByNFTId(_NFT_id)&&isRootNFT(_NFT_id))
+            new_NFT.shill_price = editions_by_id[_NFT_id].shill_price;
+        else
+            new_NFT.shill_price = calculateFee(editions_by_id[_NFT_id].shill_price, loss_ratio);
+        if (new_NFT.shill_price == 0) {
+            new_NFT.shill_price = editions_by_id[_NFT_id].shill_price;
+        }
         new_NFT.owner = _owner;
         new_NFT.ipfs_hash = editions_by_id[_NFT_id].ipfs_hash;
         _balances[_owner] += 1;
