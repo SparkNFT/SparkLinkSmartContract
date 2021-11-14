@@ -61,9 +61,8 @@ Note:
 | Contract               | Address                |
 | ---------------------- | ---------------------- |
 | [Mainnet][mainnet]     | N/A                    |
-| [BSC][bscscan]         | N/A                    |
-| [BSC-testnet][bsctest] | N/A                    |
-| [Matic][matic]         | [0xBd85E086][Bd85E086] |
+| [BSC][bscscan]         | [0xA582704b][A582704b] |
+| [Matic][matic]         | [0xBd85E086][6f2923d3] |
 
 [mainnet]: https://etherscan.io
 [ropsten]: https://ropsten.etherscan.io
@@ -71,7 +70,8 @@ Note:
 [bsctest]: https://testnet.bscscan.com
 [matic]: https://polygonscan.com
 [mumbai]: https://explorer-mumbai.maticvigil.com
-[Bd85E086]: https://polygonscan.com/address/0xBd85E0862Cc6fC5C93fFdc7e7e2357f81e337d10
+[6f2923d3]: https://polygonscan.com/address/0x6f2923d38a030f633836a824F1a8093C0087d99d
+[A582704b]: https://www.bscscan.com/address/0xA582704bbe9ac301ff7b8e97E1E51C17f37bDF16
 
 ## Contribute
 
