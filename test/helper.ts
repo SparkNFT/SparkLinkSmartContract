@@ -16,6 +16,7 @@ export default {
     shill_times = 10,
     ipfs_hash = Buffer.from(spark_constant.default_hash_1._hash, 'hex'),
     token_addr = ethers.constants.AddressZero,
+    is_free = false,
     is_NC = false,
     is_ND = false
   ) {
@@ -25,6 +26,7 @@ export default {
       shill_times,
       ipfs_hash,
       token_addr,
+      is_free,
       is_NC,
       is_ND
     );

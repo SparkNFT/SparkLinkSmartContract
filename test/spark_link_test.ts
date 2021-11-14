@@ -22,6 +22,7 @@ describe("SparkLink", function () {
   let SparkLink: SparkLink;
   let owner: SignerWithAddress;
   let caller: SignerWithAddress;
+  let aha : SignerWithAddress;
   let accounts: SignerWithAddress[];
   let UniswapV2FactoryInterface = new ethers.utils.Interface(jsonABI_UniswapV2Factory.abi);
   let UniswapV2Factory;
@@ -36,6 +37,7 @@ describe("SparkLink", function () {
     accounts = await ethers.getSigners();
     owner = accounts[0];
     caller = accounts[19];
+    aha = accounts[18];
     let UniswapV2FactoryFactory = new ethers.ContractFactory(UniswapV2FactoryInterface, jsonABI_UniswapV2Factory.evm.bytecode.object, owner);
     let UniswapV2FactoryContract = await UniswapV2FactoryFactory.deploy(owner.address);
     UniswapV2Factory = (await UniswapV2FactoryContract.deployed()).connect(owner);
@@ -48,7 +50,7 @@ describe("SparkLink", function () {
     UniswapV2FactoryAddress = UniswapV2Factory.address;
     UniswapV2Router02Address =  UniswapV2Router02.address;
     const SparkLinkFactory = await ethers.getContractFactory("SparkLink");
-    SparkLink = (await SparkLinkFactory.deploy(caller.address, UniswapV2Router02Address, UniswapV2FactoryAddress)) as SparkLink;
+    SparkLink = (await SparkLinkFactory.deploy(caller.address, aha.address, UniswapV2Router02Address, UniswapV2FactoryAddress)) as SparkLink;
     SparkLink = (await SparkLink.deployed()).connect(owner);
   });
 
@@ -69,6 +71,7 @@ describe("SparkLink", function () {
           invalid_parameter._shill_times, 
           invalid_parameter.ipfs_hash,
           invalid_parameter.token_addr,
+          invalid_parameter.is_free,
           invalid_parameter.is_NC,
           invalid_parameter.is_ND
         )).to.be.revertedWith(error_info);
@@ -82,6 +85,7 @@ describe("SparkLink", function () {
           invalid_parameter._shill_times, 
           invalid_parameter.ipfs_hash,
           invalid_parameter.token_addr,
+          invalid_parameter.is_free,
           invalid_parameter.is_NC,
           invalid_parameter.is_ND
         )).to.be.reverted;
@@ -95,6 +99,7 @@ describe("SparkLink", function () {
           invalid_parameter._shill_times, 
           invalid_parameter.ipfs_hash,
           invalid_parameter.token_addr,
+          invalid_parameter.is_free,
           invalid_parameter.is_NC,
           invalid_parameter.is_ND
         )).to.be.reverted;
@@ -108,6 +113,7 @@ describe("SparkLink", function () {
           invalid_parameter._shill_times, 
           invalid_parameter.ipfs_hash,
           invalid_parameter.token_addr,
+          invalid_parameter.is_free,
           invalid_parameter.is_NC,
           invalid_parameter.is_ND
         )).to.be.reverted;
@@ -121,6 +127,7 @@ describe("SparkLink", function () {
           invalid_parameter._shill_times, 
           invalid_parameter.ipfs_hash,
           invalid_parameter.token_addr,
+          invalid_parameter.is_free,
           invalid_parameter.is_NC,
           invalid_parameter.is_ND
         )).to.be.reverted;
@@ -1054,6 +1061,7 @@ describe("SparkLink", function () {
         valid_parameter._shill_times, 
         valid_parameter.ipfs_hash,
         valid_parameter.token_addr,
+        valid_parameter.is_free,
         valid_parameter.is_NC,
         valid_parameter.is_ND
       );
