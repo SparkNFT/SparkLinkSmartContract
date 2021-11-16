@@ -228,7 +228,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
     {
         require(isEditionExisting(_NFT_id), "SparkLink: This NFT does not exist");
         require(editions_by_id[_NFT_id].remaining_shill_times > 0, "SparkLink: There is no remaining shill time for this NFT");
-        if (!getIsFreeByNFTId(_NFT_id)||!isRootNFT(_NFT_id)){
+        if (!isRootNFT(_NFT_id)||!getIsFreeByNFTId(_NFT_id)){
             address token_addr = getTokenAddrByNFTId(_NFT_id);
             if (token_addr == address(0)){
                 require(msg.value == editions_by_id[_NFT_id].shill_price, "SparkLink: Wrong price");
@@ -529,7 +529,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
         return(
             editions_by_id[getRootNFTIdByNFTId(_NFT_id)].father_id,
             getFatherByNFTId(_NFT_id),
-            getShillPriceByNFTId(_NFT_id),
+            editions_by_id[_NFT_id].shill_price,
             getRemainShillTimesByNFTId(_NFT_id),
             getProfitByNFTId(_NFT_id),
             tokenURI(_NFT_id)
