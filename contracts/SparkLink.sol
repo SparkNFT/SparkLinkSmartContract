@@ -50,7 +50,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
         // - remaining_shill_times: The initial value is the shilltimes of the issue it belongs to
         //                       When others `acceptShill` from this NFT, it will subtract one until its value is 0  
         // - `owner`: record the owner of this NFT
-        // - `ipfs_hash`: IPFS hash value of the URI where this NTF's metadata stores
+        // - `uri_value`: IPFS hash value of the URI where this NTF's metadata stores
         // - `transfer_price`: The initial value is zero
         //                   Set by `determinePrice` or `determinePriceAndApprove` before `transferFrom`
         //                   It will be checked wether equal to msg.value when `transferFrom` is called
@@ -60,7 +60,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
         uint128 shill_price;
         uint16 remaining_shill_times;
         address owner;
-        bytes32 ipfs_hash;
+        string uri_value;
         uint128 transfer_price;
         uint128 profit;
     }
@@ -96,8 +96,8 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
     // Emit when setURI success
     event SetURI(
         uint64 indexed NFT_id,
-        bytes32 old_URI,
-        bytes32 new_URI
+        string old_URI,
+        string new_URI
     );
 
     event Label(
@@ -148,7 +148,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
      *                   Its value should <= 100
      * - `_shill_times`: the number of times a single NFT can been shared
      *                   Its value should <= 65536
-     * - `_ipfs_hash`: IPFS hash value of the URI where this NTF's metadata stores
+     * - `_uri_value`: IPFS hash value of the URI where this NTF's metadata stores
      *
      * - `token_address`: list of tokens(address) can be accepted for payment.
      *                 `A token address` can be ERC-20 token contract address or `address(0)`(ETH).
@@ -164,7 +164,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
         uint128 _first_sell_price,
         uint8 _royalty_fee,
         uint16 _shill_times,
-        bytes32 _ipfs_hash,
+        string memory _uri_value,
         address _token_addr,
         bool _is_free,
         bool _is_NC,
@@ -197,7 +197,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
         new_NFT.remaining_shill_times = _shill_times;
         new_NFT.shill_price = _first_sell_price;
         new_NFT.owner = msg.sender;
-        new_NFT.ipfs_hash = _ipfs_hash;
+        new_NFT.uri_value = _uri_value;
         _balances[msg.sender] += 1;
         emit Transfer(address(0), msg.sender, rootNFTId);
         emit Publish(
@@ -325,15 +325,15 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
      * Requirements:
      *
      * - `_NFT_id`: transferred token id.
-     * - `ipfs_hash`: ipfs hash value of the URI will be set.
+     * - `uri_value`: ipfs hash value of the URI will be set.
      * Emits a {SetURI} events
      */
-    function setURI(uint64 _NFT_id, bytes32 ipfs_hash) public {
+    function setURI(uint64 _NFT_id, string memory uri_value) public {
         if (getIsNDByNFTId(_NFT_id)) {
             require(_NFT_id == getRootNFTIdByNFTId(_NFT_id), "SparkLink: NFT follows the ND protocol, only the root NFT's URI can be set.");
         }
         require(ownerOf(_NFT_id) == msg.sender, "SparkLink: Only owner can set the token URI");
-        _setTokenURI(_NFT_id, ipfs_hash);
+        _setTokenURI(_NFT_id, uri_value);
     }
 
      /**
@@ -345,7 +345,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
      */
     function updateURI(uint64 _NFT_id) public{
         require(ownerOf(_NFT_id) == msg.sender, "SparkLink: Only owner can update the token URI");
-        editions_by_id[_NFT_id].ipfs_hash = editions_by_id[getRootNFTIdByNFTId(_NFT_id)].ipfs_hash;
+        editions_by_id[_NFT_id].uri_value = editions_by_id[getRootNFTIdByNFTId(_NFT_id)].uri_value;
     }
 
     function label(uint64 _NFT_id, string memory content) public {
@@ -557,10 +557,9 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
      */
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
         require(isEditionExisting(uint256toUint64(tokenId)), "SparkLink: URI query for nonexistent token");
-        bytes32 _ipfs_hash = editions_by_id[uint256toUint64(tokenId)].ipfs_hash;
-        string memory encoded_hash = _toBase58String(_ipfs_hash);
+        string memory _uri_value = editions_by_id[uint256toUint64(tokenId)].uri_value;
         string memory base = _baseURI();
-        return string(abi.encodePacked(base, encoded_hash));
+        return string(abi.encodePacked(base, _uri_value));
     }
 
   /**
@@ -881,10 +880,10 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
      *
      * - `tokenId` must exist.
      */
-    function _setTokenURI(uint64 tokenId, bytes32 ipfs_hash) internal virtual {
-        bytes32 old_URI = editions_by_id[tokenId].ipfs_hash;
-        editions_by_id[tokenId].ipfs_hash = ipfs_hash;
-        emit SetURI(tokenId, old_URI, ipfs_hash);
+    function _setTokenURI(uint64 tokenId, string memory uri_value) internal virtual {
+        string memory old_URI = editions_by_id[tokenId].uri_value;
+        editions_by_id[tokenId].uri_value = uri_value;
+        emit SetURI(tokenId, old_URI, uri_value);
     }
     
      /**
@@ -920,7 +919,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
             new_NFT.shill_price = editions_by_id[_NFT_id].shill_price;
         }
         new_NFT.owner = _owner;
-        new_NFT.ipfs_hash = editions_by_id[_NFT_id].ipfs_hash;
+        new_NFT.uri_value = editions_by_id[_NFT_id].uri_value;
         _balances[_owner] += 1;
         emit Transfer(address(0), _owner, new_NFT_id);
         return new_NFT_id;
@@ -1037,7 +1036,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
     }
         
     function _baseURI() internal pure returns (string memory) {
-        return "https://ipfs.io/ipfs/";
+        return "https://arweave.net/";
     } 
 
 
@@ -1116,54 +1115,5 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
     
     function calculateFee(uint128 _amount, uint8 _fee_percent) internal pure returns (uint128) {
         return _amount*_fee_percent/10**2;
-    }
-
-    function _toBase58String(bytes32 con) internal pure returns (string memory) {
-        
-        bytes memory source = bytes.concat(sha256MultiHash,con);
-
-        uint8[] memory digits = new uint8[](64); //TODO: figure out exactly how much is needed
-        digits[0] = 0;
-        uint8 digitlength = 1;
-        for (uint256 i = 0; i<source.length; ++i) {
-        uint carry = uint8(source[i]);
-        for (uint256 j = 0; j<digitlength; ++j) {
-            carry += uint(digits[j]) * 256;
-            digits[j] = uint8(carry % 58);
-            carry = carry / 58;
-        }
-        
-        while (carry > 0) {
-            digits[digitlength] = uint8(carry % 58);
-            digitlength++;
-            carry = carry / 58;
-        }
-        }
-        //return digits;
-        return string(toAlphabet(reverse(truncate(digits, digitlength))));
-    }
-
-    function toAlphabet(uint8[] memory indices) internal pure returns (bytes memory) {
-        bytes memory output = new bytes(indices.length);
-        for (uint256 i = 0; i<indices.length; i++) {
-            output[i] = ALPHABET[indices[i]];
-        }
-        return output;
-    }
-    
-    function truncate(uint8[] memory array, uint8 length) internal pure returns (uint8[] memory) {
-        uint8[] memory output = new uint8[](length);
-        for (uint256 i = 0; i<length; i++) {
-            output[i] = array[i];
-        }
-        return output;
-    }
-  
-    function reverse(uint8[] memory input) internal pure returns (uint8[] memory) {
-        uint8[] memory output = new uint8[](input.length);
-        for (uint256 i = 0; i<input.length; i++) {
-            output[i] = input[input.length-1-i];
-        }
-        return output;
     }
 }
