@@ -60,18 +60,19 @@ Note:
 
 | Contract               | Address                |
 | ---------------------- | ---------------------- |
-| [Mainnet][mainnet]     | N/A                    |
-| [BSC][bscscan]         | [0xA582704b][A582704b] |
-| [Matic][matic]         | [0xBd85E086][6f2923d3] |
+| [Mainnet][mainnet]     | [0x71872117][71872117] |
+| [BSC][bscscan]         | [0xDc891065][Dc891065] |
+| [Matic][matic]         | [0x166BCdc5][166BCdc5] |
 
-[mainnet]: https://etherscan.io
+[mainnet]: https://etherscan.io/
 [ropsten]: https://ropsten.etherscan.io
 [bscscan]: https://bscscan.com
 [bsctest]: https://testnet.bscscan.com
 [matic]: https://polygonscan.com
 [mumbai]: https://explorer-mumbai.maticvigil.com
-[6f2923d3]: https://polygonscan.com/address/0x6f2923d38a030f633836a824F1a8093C0087d99d
-[A582704b]: https://www.bscscan.com/address/0xA582704bbe9ac301ff7b8e97E1E51C17f37bDF16
+[166BCdc5]: https://polygonscan.com/address/0x166BCdc53BC8573448F37C66EF409f1Cb31450a2
+[Dc891065]: https://www.bscscan.com/address/0xDc89106504f82642801dc43C8B545Ef7DA95ff2b
+[71872117]: https://etherscan.io/address/0x7187211744c67F8cE89fEAc63b85D8D17417bDfE
 
 ## Contribute
 
@@ -82,6 +83,3 @@ Had you any questions, please do not hesitate to create an [issue](https://githu
 ## License
 
 [MIT LICENSE](LICENSE)
-
-test
-test

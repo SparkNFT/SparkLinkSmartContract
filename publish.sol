@@ -2,8 +2,8 @@
 // Sources flattened with hardhat v2.6.1 https://hardhat.org
 
 // File contracts/IERC721Receiver.sol
-// SPDX-License-Identifier: MIT
 
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
@@ -1279,7 +1279,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
     {
         require(isEditionExisting(_NFT_id), "SparkLink: This NFT does not exist");
         require(editions_by_id[_NFT_id].remaining_shill_times > 0, "SparkLink: There is no remaining shill time for this NFT");
-        if (!getIsFreeByNFTId(_NFT_id)||!isRootNFT(_NFT_id)){
+        if (!isRootNFT(_NFT_id)||!getIsFreeByNFTId(_NFT_id)){
             address token_addr = getTokenAddrByNFTId(_NFT_id);
             if (token_addr == address(0)){
                 require(msg.value == editions_by_id[_NFT_id].shill_price, "SparkLink: Wrong price");
@@ -1580,7 +1580,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
         return(
             editions_by_id[getRootNFTIdByNFTId(_NFT_id)].father_id,
             getFatherByNFTId(_NFT_id),
-            getShillPriceByNFTId(_NFT_id),
+            editions_by_id[_NFT_id].shill_price,
             getRemainShillTimesByNFTId(_NFT_id),
             getProfitByNFTId(_NFT_id),
             tokenURI(_NFT_id)
@@ -1849,7 +1849,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
 
     // Token symbol
     string private _symbol;
-    uint8 public loss_ratio = 50;
+    uint8 public loss_ratio = 62;
     uint8 public DAO_fee = 2;
     uint8 public constant MAX_DAO_FEE = 2;
     uint8 public constant MAX_LOSS_RATIO = 50;
