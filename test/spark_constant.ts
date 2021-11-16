@@ -152,7 +152,7 @@ const overflow_ipfs_hash_value = Buffer.from('4f0b018a3b003b7c99f97427f410cafe57
 const label1 = "huluwahuluwa yiketengshangqigegua"
 const label2 = "葫芦娃葫芦娃，一颗藤上七个瓜"
 const label3 = "伞兵UP"
-const loss_ratio = 50;
+const loss_ratio = 62;
 const DAO_fee = 2;
 export default {
     airpod_ctor_parameters,

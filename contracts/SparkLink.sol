@@ -798,7 +798,7 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata{
 
     // Token symbol
     string private _symbol;
-    uint8 public loss_ratio = 50;
+    uint8 public loss_ratio = 62;
     uint8 public DAO_fee = 2;
     uint8 public constant MAX_DAO_FEE = 2;
     uint8 public constant MAX_LOSS_RATIO = 50;

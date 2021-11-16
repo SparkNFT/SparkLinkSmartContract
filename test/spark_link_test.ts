@@ -255,7 +255,7 @@ describe("SparkLink", function () {
       expect(await SparkLink.getProfitByNFTId(root_nft_id)).to.eq(100*(100-spark_constant.DAO_fee)/100);
       expect(await SparkLink.getRemainShillTimesByNFTId(new_NFT_id)).to.eq(10);
       expect(await SparkLink.getFatherByNFTId(new_NFT_id)).to.eq(root_nft_id);
-      expect(await SparkLink.getShillPriceByNFTId(new_NFT_id)).to.eq(50);
+      expect(await SparkLink.getShillPriceByNFTId(new_NFT_id)).to.eq(first_sell_price.mul(spark_constant.loss_ratio).div(100));
       expect(await SparkLink.ownerOf(new_NFT_id)).to.eq(other.address);
       expect(await SparkLink.balanceOf(other.address)).to.eq(1);
       expect(await SparkLink.tokenURI(new_NFT_id)).to.eq(await SparkLink.tokenURI(root_nft_id));
