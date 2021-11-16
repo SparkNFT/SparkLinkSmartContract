@@ -14,7 +14,7 @@ export default {
     first_sell_price = BigNumber.from(100),
     royalty_fee = 30,
     shill_times = 10,
-    ipfs_hash = Buffer.from(spark_constant.default_hash_1._hash, 'hex'),
+    ipfs_hash = spark_constant.default_hash_1._hash,
     token_addr = ethers.constants.AddressZero,
     is_free = false,
     is_NC = false,
@@ -75,8 +75,8 @@ export default {
     return claim_event;
   },
 
-  async setURI(contract: SparkLink, caller_acount: SignerWithAddress, NFT_id:BigNumber, ipfs_hash: String) {
-    await contract.connect(caller_acount).setURI(NFT_id, Buffer.from(ipfs_hash, 'hex'));
+  async setURI(contract: SparkLink, caller_acount: SignerWithAddress, NFT_id:BigNumber, ipfs_hash: string) {
+    await contract.connect(caller_acount).setURI(NFT_id, ipfs_hash);
     const SetURI_event = (await contract.queryFilter(contract.filters.SetURI(NFT_id, null, null)))[0];
     return SetURI_event;
   },

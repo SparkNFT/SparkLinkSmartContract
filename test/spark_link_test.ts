@@ -1037,18 +1037,18 @@ describe("SparkLink", function () {
     })
     it ("should setURI reverted with invalid Id", async () => {
       const invalid_parameter = spark_constant.overflow_NFT_id_value;
-      await expect(SparkLink.connect(owner).setURI(invalid_parameter, Buffer.from(spark_constant.hash_2._hash, "hex"))).to.be.reverted;
+      await expect(SparkLink.connect(owner).setURI(invalid_parameter, spark_constant.hash_2._hash)).to.be.reverted;
     })
     it ("should setURI reverted with invalid Id", async () => {
       const invalid_parameter = spark_constant.nft_id_not_exist;
-      await expect(SparkLink.connect(owner).setURI(invalid_parameter, Buffer.from(spark_constant.hash_2._hash, "hex"))).to.be.reverted;
+      await expect(SparkLink.connect(owner).setURI(invalid_parameter, spark_constant.hash_2._hash)).to.be.reverted;
     })
     it ("should setURI reverted with account not owner", async () => {
       const caller = accounts[1];
       const publish_event = await helper.publish(SparkLink);
       const tokenId = publish_event.args.rootNFTId;
       const error_info = "SparkLink: Only owner can set the token URI";
-      await expect(SparkLink.connect(caller).setURI(tokenId, Buffer.from(spark_constant.hash_2._hash, "hex"))).to.be.revertedWith(error_info);
+      await expect(SparkLink.connect(caller).setURI(tokenId, spark_constant.hash_2._hash)).to.be.revertedWith(error_info);
     })
     it ("should setURI reverted with ND attribute", async () => {
       const caller = accounts[1];
@@ -1070,7 +1070,7 @@ describe("SparkLink", function () {
       const transfer_event = (await SparkLink.queryFilter(SparkLink.filters.Transfer(ethers.constants.AddressZero, other.address, null)))[0];;
       const tokenId = transfer_event.args.tokenId;
       const error_info = "SparkLink: NFT follows the ND protocol, only the root NFT's URI can be set.";
-      await expect(SparkLink.connect(other).setURI(tokenId, Buffer.from(spark_constant.hash_2._hash, "hex"))).to.be.revertedWith(error_info);
+      await expect(SparkLink.connect(other).setURI(tokenId, spark_constant.hash_2._hash)).to.be.revertedWith(error_info);
     })
   })
 
