@@ -41,7 +41,7 @@ async function main() {
     swapRouterAddress = quickSwapRouter02;
     swapFactoryAddress = quickSwapFactory;
   }
-  else if (network_name == "ETH")
+  else if (network_name == "ETH" || network_name == "rinkeby")
   {
     swapRouterAddress = uniSwapRouter02;
     swapFactoryAddress = uniSwapFactory;
@@ -50,6 +50,7 @@ async function main() {
     return;
   }
   const [deployer] = await ethers.getSigners();
+  console.log("xxxxxxx");
   console.log("Deploying contracts with the account:", deployer.address);
   console.log("Account balance:", (await deployer.getBalance()).toString());
   console.log("SwapRouterAddress: " + swapRouterAddress);
