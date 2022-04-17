@@ -226,15 +226,35 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata {
             editions_by_id[_NFT_id].remaining_shill_times > 0,
             "SparkLink: There is no remaining shill time for this NFT"
         );
-        addProfitFromMsgSender(
-            _NFT_id,
-            editions_by_id[_NFT_id].shill_price -
-                getRoyaltyPriceByNFTId(_NFT_id)
-        );
-        addProfitFromMsgSender(
-            getRootNFTIdByNFTId(_NFT_id),
-            getRoyaltyPriceByNFTId(_NFT_id)
-        );
+        address token_addr = getTokenAddrByNFTId(_NFT_id);
+        uint128 amount = editions_by_id[_NFT_id].shill_price;
+        uint128 increase = amount;
+        uint128 royaltyPrice = getRoyaltyPriceByNFTId(_NFT_id);
+         if (token_addr == address(0)) {
+            require(msg.value == amount, "SparkLink: Price not met");
+         }
+         else {
+            uint256 before_balance = IERC20(token_addr).balanceOf(
+                address(this)
+            );
+            IERC20(token_addr).safeTransferFrom(
+                msg.sender,
+                address(this),
+                amount
+            );
+            increase = uint256toUint128(
+                IERC20(token_addr).balanceOf(address(this)) - before_balance
+            );
+            require(increase > royaltyPrice, "SparkLink: Price not met");
+        }
+
+        editions_by_id[_NFT_id].profit =
+            editions_by_id[_NFT_id].profit +
+            increase-royaltyPrice;
+        
+        editions_by_id[getRootNFTIdByNFTId(_NFT_id)].profit =
+            editions_by_id[getRootNFTIdByNFTId(_NFT_id)].profit +
+            royaltyPrice;
         editions_by_id[_NFT_id].remaining_shill_times -= 1;
         _mintNFT(_NFT_id, msg.sender);
         if (editions_by_id[_NFT_id].remaining_shill_times == 0)
