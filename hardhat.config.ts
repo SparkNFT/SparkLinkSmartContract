@@ -5,7 +5,9 @@ import "@nomiclabs/hardhat-waffle";
 import "hardhat-gas-reporter";
 import 'hardhat-deploy';
 import 'hardhat-deploy-ethers';
-import chain from "./chain";
+
+const CHAIN_FILE = process.env.LOCAL_HOST ? "./chain.localhost" : "./chain";
+const chain = require(CHAIN_FILE).default;
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html

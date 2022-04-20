@@ -26,5 +26,11 @@
     "hardhat-deploy": "^0.9.4",
     "hardhat-deploy-ethers": "^0.3.0-beta.11",
     "weth": "^1.0.4"
+  },
+  "scripts": {
+    "build:image": "DOCKER_BUILDKIT=1 BUILDKIT_PROGRESS=plain docker build .",
+    "serve": "LOCAL_HOST=1 hardhat node",
+    "compile": "LOCAL_HOST=1 hardhat compile",
+    "deploy:localhost": "sleep 3 && LOCAL_HOST=1 hardhat run --network localhost scripts/deploy.ts"
   }
 }

@@ -41,7 +41,7 @@ async function main() {
     swapRouterAddress = quickSwapRouter02;
     swapFactoryAddress = quickSwapFactory;
   }
-  else if (network_name == "ETH" || network_name == "rinkeby")
+  else if (network_name == "ETH" || network_name == "rinkeby" || network_name == "localhost")
   {
     swapRouterAddress = uniSwapRouter02;
     swapFactoryAddress = uniSwapFactory;

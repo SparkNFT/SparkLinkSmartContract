@@ -44,6 +44,12 @@ To deploy the smart contract on Ethereum rinkeby testnet:
 make rinkeby
 ```
 
+To build a docker image for test usage:
+
+```
+npm run build:image
+```
+
 Note:
 
 - This project is powered by [hardhat](https://hardhat.org/).
