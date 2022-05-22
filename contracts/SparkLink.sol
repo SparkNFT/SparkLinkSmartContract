@@ -316,6 +316,17 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata {
         if (editions_by_id[_NFT_id].profit != 0) {
             uint128 amount = editions_by_id[_NFT_id].profit;
             address token_addr = getTokenAddrByNFTId(_NFT_id);
+            if (!isRootNFT(_NFT_id)) {
+                uint128 _royalty_fee = calculateFee(
+                    amount,
+                    getRoyaltyFeeByNFTId(_NFT_id)
+                );
+                uint64 father_NFT_id = getFatherByNFTId(_NFT_id);
+                editions_by_id[father_NFT_id].profit =
+                    editions_by_id[father_NFT_id].profit +
+                    _royalty_fee;
+                amount -= _royalty_fee;
+            }
             if (DAO_fee != 0) {
                 uint128 DAO_amount = calculateFee(amount, DAO_fee);
                 amount -= DAO_amount;
@@ -333,17 +344,6 @@ contract SparkLink is Ownable, ERC165, IERC721, IERC721Metadata {
                 }
             }
             editions_by_id[_NFT_id].profit = 0;
-            if (!isRootNFT(_NFT_id)) {
-                uint128 _royalty_fee = calculateFee(
-                    amount,
-                    getRoyaltyFeeByNFTId(_NFT_id)
-                );
-                uint64 father_NFT_id = getFatherByNFTId(_NFT_id);
-                editions_by_id[father_NFT_id].profit =
-                    editions_by_id[father_NFT_id].profit +
-                    _royalty_fee;
-                amount -= _royalty_fee;
-            }
             if (token_addr == address(0)) {
                 payable(ownerOf(_NFT_id)).transfer(amount);
             } else {
