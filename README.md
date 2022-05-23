@@ -66,23 +66,18 @@ Note:
 
 | Contract               | Address                |
 | ---------------------- | ---------------------- |
-| [Mainnet][mainnet]     | [0x71872117][71872117] |
-| [BSC][bscscan]         | [0xDc891065][Dc891065] |
-| [Matic][matic]         | [0x166BCdc5][166BCdc5] |
-| [Rinkeby][rinkeby]         | [][] |
+| [Matic][matic]         | [0xb83A6A35][b83A6A35] |
+| [Rinkeby][rinkeby]     | [0x71872117][71872117] |
 
 
 [mainnet]: https://etherscan.io/
 [ropsten]: https://ropsten.etherscan.io
 [bscscan]: https://bscscan.com
 [bsctest]: https://testnet.bscscan.com
-[matic]: https://polygonscan.com
-[mumbai]: https://explorer-mumbai.maticvigil.com
-[166BCdc5]: https://polygonscan.com/address/0x166BCdc53BC8573448F37C66EF409f1Cb31450a2
-[Dc891065]: https://www.bscscan.com/address/0xDc89106504f82642801dc43C8B545Ef7DA95ff2b
-[71872117]: https://etherscan.io/address/0x7187211744c67F8cE89fEAc63b85D8D17417bDfE
+[matic]: https://polygonscan.com/address/0xb83A6A35F1468BEA014e6Aa014300128D34ee433
+[71872117]: https://rinkeby.etherscan.io/address/0x3Bdc8834cFB7E01cB27a31f4F02274bF2b27246C
 
-[rinkeby]:https://rinkeby.etherscan.io/address/0x3Bdc8834cFB7E01cB27a31f4F02274bF2b27246C#code
+[rinkeby]:https://rinkeby.etherscan.io/address/0x3Bdc8834cFB7E01cB27a31f4F02274bF2b27246C
 ## Contribute
 
 Any contribution is welcomed to make it better.
