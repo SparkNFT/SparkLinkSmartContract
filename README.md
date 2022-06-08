@@ -68,6 +68,7 @@ Note:
 | ---------------------- | ---------------------- |
 | [Polygon][polygon]         | [0xb83A6A35][b83A6A35] |
 | [Rinkeby][rinkeby]     | [0x71872117][71872117] |
+| [BSC][bscscan]         | [0xb83A6A35][b83A6A35] |
 
 
 [mainnet]: https://etherscan.io/
@@ -76,6 +77,9 @@ Note:
 [bsctest]: https://testnet.bscscan.com
 [b83A6A35]: https://polygonscan.com/address/0xb83A6A35F1468BEA014e6Aa014300128D34ee433
 [71872117]: https://rinkeby.etherscan.io/address/0x3Bdc8834cFB7E01cB27a31f4F02274bF2b27246C
+[b83A6A35]: https://www.bscscan.com/address/0xb83A6A35F1468BEA014e6Aa014300128D34ee433
+0xb83A6A35F1468BEA014e6Aa014300128D34ee433
+
 [polygon]: https://polygonscan.com
 [rinkeby]:https://rinkeby.etherscan.io
 ## Contribute
